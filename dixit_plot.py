@@ -30,6 +30,7 @@ def read_results(file, B, skeleton, nodes='all', method='utigsp',delete_bi_direc
     fp = []
     tp_skeleton = []
     fp_skeleton = []
+    time = []
     for vals in file.keys():
         if method == 'utigsp':
             estimated_dag = file[vals]['estimated_dag']
@@ -43,7 +44,9 @@ def read_results(file, B, skeleton, nodes='all', method='utigsp',delete_bi_direc
             tp.append(int(np.sum(estimated_dag*B)))
             fp.append(int(np.sum(estimated_dag)-tp[-1]))
             tp_skeleton.append(int(np.sum(estimated_skeleton*skeleton)/2))
-            fp_skeleton.append(int(np.sum(estimated_skeleton)/2 - tp_skeleton[-1]))    
+            fp_skeleton.append(int(np.sum(estimated_skeleton)/2 - tp_skeleton[-1]))   
+            time.append(file[vals]['time'])
+
         else:
             tp.append(int(np.sum(estimated_dag[:,EFFECTIVE_NODES]*B[:,EFFECTIVE_NODES])))
             fp.append(int(np.sum(estimated_dag[:,EFFECTIVE_NODES])-tp[-1]))
@@ -51,8 +54,9 @@ def read_results(file, B, skeleton, nodes='all', method='utigsp',delete_bi_direc
                                int(np.sum(estimated_skeleton[EFFECTIVE_NODES][:,EFFECTIVE_NODES]*skeleton[EFFECTIVE_NODES][:,EFFECTIVE_NODES])))
             fp_skeleton.append(int(np.sum(estimated_skeleton[:,EFFECTIVE_NODES]) -\
                                    np.sum(estimated_skeleton[EFFECTIVE_NODES][:,EFFECTIVE_NODES]) - tp_skeleton[-1]))                
-    
-    return tp, fp, tp_skeleton, fp_skeleton
+            time.append(file[vals]['time'])
+
+    return tp, fp, tp_skeleton, fp_skeleton, time
 
 #%%
 # 'dixit_paper' or 'igsp_paper' for ground truth reference
@@ -81,54 +85,42 @@ with open(DIXIT_ESTIMATED_FOLDER+'/utigsp_gauss.pkl', 'rb') as f:
 with open(DIXIT_ESTIMATED_FOLDER+'/utigsp_star_gauss.pkl', 'rb') as f:
     res_utigsp_star_gauss = pickle.load(f)   
     
-# with open(DIXIT_ESTIMATED_FOLDER+'/res_utigsp_hsic.pkl', 'rb') as f:
-#     res_utigsp_hsic = pickle.load(f)
+with open(DIXIT_ESTIMATED_FOLDER+'/utigsp_hsic.pkl', 'rb') as f:
+    res_utigsp_hsic = pickle.load(f)
     
-# with open(DIXIT_ESTIMATED_FOLDER+'/res_utigsp_star_hsic.pkl', 'rb') as f:
-#     res_utigsp_star_hsic = pickle.load(f)    
-    
-# with open(DIXIT_ESTIMATED_FOLDER+'/res_utigsp_kci.pkl', 'rb') as f:
-#     res_utigsp_kci = pickle.load(f)
-    
-# with open(DIXIT_ESTIMATED_FOLDER+'/res_utigsp_star_kci.pkl', 'rb') as f:
-#     res_utigsp_star_kci = pickle.load(f)    
-    
+with open(DIXIT_ESTIMATED_FOLDER+'/utigsp_star_hsic.pkl', 'rb') as f:
+    res_utigsp_star_hsic = pickle.load(f)    
+
 # load our results
-with open(DIXIT_ESTIMATED_FOLDER+'/our_results.pkl', 'rb') as f:
+with open(DIXIT_ESTIMATED_FOLDER+'/our_results_2.pkl', 'rb') as f:
     res_ours = pickle.load(f)    
     
 
 #%%
 
-utigsp_gauss_tp, utigsp_gauss_fp, utigsp_gauss_tp_skeleton, utigsp_gauss_fp_skeleton = \
+utigsp_gauss_tp, utigsp_gauss_fp, utigsp_gauss_tp_skeleton, utigsp_gauss_fp_skeleton, utigsp_gauss_time = \
     read_results(res_utigsp_gauss, B, correct_skeleton,method='utigsp')
 
-utigsp_star_gauss_tp, utigsp_star_gauss_fp, utigsp_star_gauss_tp_skeleton, utigsp_star_gauss_fp_skeleton = \
+utigsp_star_gauss_tp, utigsp_star_gauss_fp, utigsp_star_gauss_tp_skeleton, utigsp_star_gauss_fp_skeleton, utigsp_star_gauss_time = \
     read_results(res_utigsp_star_gauss, B, correct_skeleton,method='utigsp')
  
-# utigsp_hsic_tp, utigsp_hsic_fp, utigsp_hsic_tp_skeleton, utigsp_hsic_fp_skeleton = \
-#     read_results(res_utigsp_hsic, B, correct_skeleton,method='utigsp')
+utigsp_hsic_tp, utigsp_hsic_fp, utigsp_hsic_tp_skeleton, utigsp_hsic_fp_skeleton, utigsp_hsic_time = \
+    read_results(res_utigsp_hsic, B, correct_skeleton,method='utigsp')
 
-# utigsp_star_hsic_tp, utigsp_star_hsic_fp, utigsp_star_hsic_tp_skeleton, utigsp_star_hsic_fp_skeleton = \
-#     read_results(res_utigsp_star_hsic, B, correct_skeleton,method='utigsp')
-    
-# utigsp_kci_tp, utigsp_kci_fp, utigsp_kci_tp_skeleton, utigsp_kci_fp_skeleton = \
-#     read_results(res_utigsp_kci, B, correct_skeleton,method='utigsp')
-
-# utigsp_star_kci_tp, utigsp_star_kci_fp, utigsp_star_kci_tp_skeleton, utigsp_star_kci_fp_skeleton = \
-#     read_results(res_star_utigsp_kci, B, correct_skeleton,method='utigsp')
-    
-ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton = read_results(res_ours, B, correct_skeleton,method='ours')
+utigsp_star_hsic_tp, utigsp_star_hsic_fp, utigsp_star_hsic_tp_skeleton, utigsp_star_hsic_fp_skeleton, utigsp_star_hsic_time = \
+    read_results(res_utigsp_star_hsic, B, correct_skeleton,method='utigsp')
+        
+ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton, ours_time = read_results(res_ours, B, correct_skeleton,method='ours')
         
     
 #%%  ======= PLOT ROC for directed edges recovery ==========
 plt.clf()
 if utigsp_ci_test == 'gauss':
     plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-    plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP_star',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
+    plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
 elif utigsp_ci_test == 'hsic':
     plt.scatter(utigsp_hsic_fp,utigsp_hsic_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-    plt.scatter(utigsp_star_hsic_fp,utigsp_star_hsic_tp,label='UTIGSP_star',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
+    plt.scatter(utigsp_star_hsic_fp,utigsp_star_hsic_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
 
 plt.scatter(ours_fp,ours_tp,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
 plt.xlim([0,50])
@@ -145,10 +137,10 @@ plt.savefig(os.path.join(DIXIT_FIGURES_FOLDER, 'dixit_directed_all_'+utigsp_ci_t
 plt.clf()
 if utigsp_ci_test == 'gauss':
     plt.scatter(utigsp_gauss_fp_skeleton,utigsp_gauss_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-    plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP_star',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
+    plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
 elif utigsp_ci_test == 'hsic':
     plt.scatter(utigsp_hsic_fp_skeleton,utigsp_hsic_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-    plt.scatter(utigsp_star_hsic_fp_skeleton,utigsp_star_hsic_tp_skeleton,label='UTIGSP_star',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
+    plt.scatter(utigsp_star_hsic_fp_skeleton,utigsp_star_hsic_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
 
 plt.scatter(ours_fp_skeleton,ours_tp_skeleton,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
 plt.plot([0, n_possible_skeleton - n_true_skeleton], [0, n_true_skeleton], color='grey')

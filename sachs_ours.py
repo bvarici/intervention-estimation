@@ -26,7 +26,7 @@ for idx_setting in range(len(setting_list)):
 # for Delta_Theta estimations
 lambda_l1_list = [0.1,0.2,0.3]
 # for J0 threshold
-single_threshold_list = [0.5,1.0]
+single_threshold_list = [1.0]
 # for building J0 descendants
 pair_l1_list = [0.2]
 # remove the small values after J0 descendants built
@@ -34,7 +34,7 @@ pair_threshold_list = [0.05]
 # always taken one. ADMM parameter
 rho_list = [1.0]
 # this is the important one
-parent_l1_list = [0.1,0.15,0.2]
+parent_l1_list = [0.05,0.1,0.15,0.2]
 
 parameters_lists = \
     list(itr.product(lambda_l1_list,single_threshold_list,pair_l1_list,pair_threshold_list,parent_l1_list,rho_list))
@@ -43,7 +43,7 @@ parameters_lists = \
 results = {}
 for parameters in parameters_lists:
     results[parameters] = {}
-    est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, time_all = \
+    est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all = \
         run_ours_real(S_obs,S_int,parameters[0],parameters[1],parameters[2],parameters[3],parameters[4],parameters[5])  
         
     results[parameters]['estimated_cpdag'] = est_cpdag
@@ -52,10 +52,12 @@ for parameters in parameters_lists:
     results[parameters]['I_hat_parents'] = I_hat_parents_all
     results[parameters]['Ij_hat_parents'] = Ij_hat_parents_all
     results[parameters]['N_lists'] = N_lists_all
+    results[parameters]['A_groups'] = A_groups_all
     results[parameters]['time'] = time_all
 
 
-f = open(SACHS_ESTIMATED_FOLDER+'/our_results.pkl','wb')
+#%%
+f = open(SACHS_ESTIMATED_FOLDER+'/our_results_2.pkl','wb')
 pickle.dump(results,f)
 f.close()
     

@@ -12,8 +12,9 @@ import numpy as np
 import time
 import seaborn as sns
 import matplotlib.pyplot as plt
+import os
 
-from realdata.dixit.dixit_meta import EFFECTIVE_NODES
+from realdata.dixit.dixit_meta import EFFECTIVE_NODES, DIXIT_FIGURES_FOLDER
 from realdata.dixit.dixit_meta import dixit_get_samples, nnodes, true_B_dixit_paper
 from functions import run_ours_real
 
@@ -168,7 +169,7 @@ results = {}
 for parent_l1 in parent_l1_list:
     parameters = (lambda_l1, single_threshold, pair_l1, pair_threshold, parent_l1, rho) 
     results[parameters] = {}
-    est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, time_all = \
+    est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all = \
         run_ours_real(S_obs,S_int,lambda_l1,single_threshold,pair_l1,pair_threshold,parent_l1,rho)  
         
     results[parameters]['estimated_cpdag'] = est_cpdag
@@ -177,6 +178,7 @@ for parent_l1 in parent_l1_list:
     results[parameters]['I_hat_parents'] = I_hat_parents_all
     results[parameters]['Ij_hat_parents'] = Ij_hat_parents_all
     results[parameters]['N_lists'] = N_lists_all
+    results[parameters]['A_groups'] = A_groups_all
     results[parameters]['time'] = time_all
 
 #%%
@@ -189,9 +191,11 @@ utigsp_star_gauss_tp, utigsp_star_gauss_fp, utigsp_star_gauss_tp_skeleton, utigs
 ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton = read_results(results, B, correct_skeleton,method='ours')
         
 #%%
+utigsp_ci_test = 'gauss'
+
 plt.figure('directed')
 plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP_star',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
+plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
 
 plt.scatter(ours_fp,ours_tp,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
 plt.xlim([0,50])
@@ -201,11 +205,11 @@ plt.xlabel('False positives')
 plt.ylabel('True positives')
 plt.grid()
 plt.legend()
-#plt.savefig(os.path.join(DIXIT_FIGURES_FOLDER, 'dixit_directed_all_'+utigsp_ci_test+'.eps'))
+plt.savefig(os.path.join(DIXIT_FIGURES_FOLDER, 'example_dixit_directed_all_'+utigsp_ci_test+'.eps'))
 
 plt.figure('skeleton')
 plt.scatter(utigsp_gauss_fp_skeleton,utigsp_gauss_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP_star',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
+plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
 
 plt.scatter(ours_fp_skeleton,ours_tp_skeleton,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
 plt.plot([0, n_possible_skeleton - n_true_skeleton], [0, n_true_skeleton], color='grey')
@@ -216,5 +220,5 @@ plt.xlabel('False positives')
 plt.ylabel('True positives')
 plt.grid()
 plt.legend()
-#plt.savefig(os.path.join(DIXIT_FIGURES_FOLDER, 'dixit_skeleton_all_'+utigsp_ci_test+'.eps'))
+plt.savefig(os.path.join(DIXIT_FIGURES_FOLDER, 'example_dixit_skeleton_all_'+utigsp_ci_test+'.eps'))
 

@@ -142,44 +142,44 @@ for alpha in alpha_list:
     f.close()         
 
 #%%
-'UTIGSP KCI without targets'
-alpha_i = 1e-5
-alpha_list = [1e-4, 5e-4, 1e-3, 1e-2, 5e-2, 1e-1, 2e-1, 3e-1, 4e-1, 5e-1]
-utigsp_star_kci = {}
+# 'UTIGSP KCI without targets'
+# alpha_i = 1e-5
+# alpha_list = [1e-4, 5e-4, 1e-3, 1e-2, 5e-2, 1e-1, 2e-1, 3e-1, 4e-1, 5e-1]
+# utigsp_star_kci = {}
 
-for alpha in alpha_list:
-    utigsp_star_kci['alpha_%.3f'%alpha] = {}
-    est_dag, est_skeleton, learned_interventions, t_past = \
-        run_utigsp_real(setting_list,obs_samples,iv_samples_list,ci_test='kci',alpha=alpha,alpha_i=alpha_i,no_targets=True)
+# for alpha in alpha_list:
+#     utigsp_star_kci['alpha_%.3f'%alpha] = {}
+#     est_dag, est_skeleton, learned_interventions, t_past = \
+#         run_utigsp_real(setting_list,obs_samples,iv_samples_list,ci_test='kci',alpha=alpha,alpha_i=alpha_i,no_targets=True)
 
-    utigsp_star_kci['alpha_%.3f'%alpha]['alpha_i'] = alpha_i
-    utigsp_star_kci['alpha_%.3f'%alpha]['estimated_dag'] = est_dag
-    utigsp_star_kci['alpha_%.3f'%alpha]['estimated_skeleton'] = est_skeleton
-    utigsp_star_kci['alpha_%.3f'%alpha]['estimated_interventions'] = learned_interventions
-    utigsp_star_kci['alpha_%.3f'%alpha]['time'] = t_past    
+#     utigsp_star_kci['alpha_%.3f'%alpha]['alpha_i'] = alpha_i
+#     utigsp_star_kci['alpha_%.3f'%alpha]['estimated_dag'] = est_dag
+#     utigsp_star_kci['alpha_%.3f'%alpha]['estimated_skeleton'] = est_skeleton
+#     utigsp_star_kci['alpha_%.3f'%alpha]['estimated_interventions'] = learned_interventions
+#     utigsp_star_kci['alpha_%.3f'%alpha]['time'] = t_past    
 
-    f = open(SACHS_ESTIMATED_FOLDER+'/utigsp_star_kci.pkl','wb')
-    pickle.dump(utigsp_star_kci,f)
-    f.close()
+#     f = open(SACHS_ESTIMATED_FOLDER+'/utigsp_star_kci.pkl','wb')
+#     pickle.dump(utigsp_star_kci,f)
+#     f.close()
  
-#%%
-'UTIGSP KCI with targets'
-alpha_i = 1e-5
-alpha_list = [1e-4, 5e-4, 1e-3, 1e-2, 5e-2, 1e-1, 2e-1, 3e-1, 4e-1, 5e-1]
-utigsp_kci = {}
+# #%%
+# 'UTIGSP KCI with targets'
+# alpha_i = 1e-5
+# alpha_list = [1e-4, 5e-4, 1e-3, 1e-2, 5e-2, 1e-1, 2e-1, 3e-1, 4e-1, 5e-1]
+# utigsp_kci = {}
 
-for alpha in alpha_list:
-    utigsp_kci['alpha_%.3f'%alpha] = {}
-    est_dag, est_skeleton, learned_interventions, t_past = \
-        run_utigsp_real(setting_list,obs_samples,iv_samples_list,ci_test='utigsp_kci',alpha=alpha,alpha_i=alpha_i,no_targets=False)
+# for alpha in alpha_list:
+#     utigsp_kci['alpha_%.3f'%alpha] = {}
+#     est_dag, est_skeleton, learned_interventions, t_past = \
+#         run_utigsp_real(setting_list,obs_samples,iv_samples_list,ci_test='utigsp_kci',alpha=alpha,alpha_i=alpha_i,no_targets=False)
 
-    utigsp_kci['alpha_%.3f'%alpha]['alpha_i'] = alpha_i
-    utigsp_kci['alpha_%.3f'%alpha]['estimated_dag'] = est_dag
-    utigsp_kci['alpha_%.3f'%alpha]['estimated_skeleton'] = est_skeleton
-    utigsp_kci['alpha_%.3f'%alpha]['estimated_interventions'] = learned_interventions
-    utigsp_kci['alpha_%.3f'%alpha]['time'] = t_past    
+#     utigsp_kci['alpha_%.3f'%alpha]['alpha_i'] = alpha_i
+#     utigsp_kci['alpha_%.3f'%alpha]['estimated_dag'] = est_dag
+#     utigsp_kci['alpha_%.3f'%alpha]['estimated_skeleton'] = est_skeleton
+#     utigsp_kci['alpha_%.3f'%alpha]['estimated_interventions'] = learned_interventions
+#     utigsp_kci['alpha_%.3f'%alpha]['time'] = t_past    
 
-    f = open(SACHS_ESTIMATED_FOLDER+'/utigsp_kci.pkl','wb')
-    pickle.dump(utigsp_kci,f)
-    f.close()         
+#     f = open(SACHS_ESTIMATED_FOLDER+'/utigsp_kci.pkl','wb')
+#     pickle.dump(utigsp_kci,f)
+#     f.close()         
 

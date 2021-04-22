@@ -52,7 +52,7 @@ results = {}
 for parent_l1 in parent_l1_list:
     parameters = (lambda_l1, single_threshold, pair_l1, pair_threshold, parent_l1, rho) 
     results[parameters] = {}
-    est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, time_all = \
+    est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all = \
         run_ours_real(S_obs,S_int,lambda_l1,single_threshold,pair_l1,pair_threshold,parent_l1,rho)  
         
     results[parameters]['estimated_cpdag'] = est_cpdag
@@ -61,10 +61,11 @@ for parent_l1 in parent_l1_list:
     results[parameters]['I_hat_parents'] = I_hat_parents_all
     results[parameters]['Ij_hat_parents'] = Ij_hat_parents_all
     results[parameters]['N_lists'] = N_lists_all
+    results[parameters]['A_groups'] = A_groups_all
     results[parameters]['time'] = time_all
 
 
-f = open(DIXIT_ESTIMATED_FOLDER+'/our_results.pkl','wb')
+f = open(DIXIT_ESTIMATED_FOLDER+'/our_results_2.pkl','wb')
 pickle.dump(results,f)
 f.close()
     

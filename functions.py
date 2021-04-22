@@ -307,21 +307,22 @@ def algorithm_sample(S1,S2,lambda_l1=0.1,rho=None,single_threshold=0.05,pair_l1=
                     
         t_past = time.time() - t0
         #print(JA_groups, A_groups)
-        return I_hat, I_hat_parents, t_past, N_lists
+        return I_hat, I_hat_parents, t_past, N_lists, A_groups
     
     else:
         t_past = time.time() - t0
-        return I_hat, t_past, N_lists
+        return I_hat, t_past, N_lists, A_groups
     
 def run_ours_real(S_obs,S_int,lambda_l1=0.1,single_thresold=0.05,pair_l1=0.05,pair_threshold=0.005,parent_l1=0.05,rho=1.0):
     I_hat_all = {}
     I_hat_parents_all = {}
     Ij_hat_parents_all = {}
     N_lists_all = {}
+    A_groups_all = {}
     time_all = {}
     nnodes = S_obs.shape[0]
     for idx_setting in range(len(S_int)):
-        I_hat, I_hat_parents, t_past, N_lists = algorithm_sample(S_obs,S_int['setting_%d'%idx_setting],\
+        I_hat, I_hat_parents, t_past, N_lists, A_groups = algorithm_sample(S_obs,S_int['setting_%d'%idx_setting],\
                                                  lambda_l1,rho,single_thresold,pair_l1,pair_threshold,parent_l1,\
                                                  return_parents=True,verbose=False,Delta_hat_parent_check=False)
         Ij_hat_parents = [list(np.setdiff1d(I_hat_parents[i], I_hat)) for i in range(len(I_hat))]
@@ -329,18 +330,31 @@ def run_ours_real(S_obs,S_int,lambda_l1=0.1,single_thresold=0.05,pair_l1=0.05,pa
         I_hat_parents_all['setting_%d'%idx_setting] = I_hat_parents
         Ij_hat_parents_all['setting_%d'%idx_setting] = Ij_hat_parents
         N_lists_all['setting_%d'%idx_setting] = N_lists
+        A_groups_all['setting_%d'%idx_setting] = A_groups
         time_all['setting_%d'%idx_setting] = t_past
 
     # now combine the learned information for final causal structure
     est_cpdag = np.zeros((nnodes,nnodes))
     for idx_setting in range(len(S_int)):
         edges_current = list(zip(I_hat_all['setting_%d'%idx_setting],\
-                                Ij_hat_parents_all['setting_%d'%idx_setting]))
+                                I_hat_parents_all['setting_%d'%idx_setting]))
         for edge in edges_current:
-            est_cpdag[edge[1],edge[0]] = 1            
-
+            est_cpdag[edge[1],edge[0]] = 1         
+            
     est_skeleton = est_cpdag + est_cpdag.T
     est_skeleton[np.where(est_skeleton)] = 1
+
+    # we may have added some extra i to i edges that we cannot exactly know the orientation
+    # for idx_setting in range(len(S_int)):
+    #     Al_group_indices_for_i = [np.where([np.isin(i,A_groups_all['setting_%d'%idx_setting][l]) for l in range(len(A_groups_all['setting_%d'%idx_setting]))])[0][0] for i in I_hat_all['setting_%d'%idx_setting]]
+    #     for i_idx in range(len(I_hat_all['setting_%d'%idx_setting])):
+    #         Ii_parents = np.intersect1d(I_hat_all['setting_%d'%idx_setting],I_hat_parents_all['setting_%d'%idx_setting][i_idx])
+    #         for possible_Ii_parent in Ii_parents:
+    #             Ii_parent_idx = I_hat_all['setting_%d'%idx_setting].index(possible_Ii_parent)
+    #             if Al_group_indices_for_i[Ii_parent_idx] >= Al_group_indices_for_i[i_idx]:
+    #                 est_cpdag[I_hat_all['setting_%d'%idx_setting][Ii_parent_idx],I_hat_all['setting_%d'%idx_setting][i_idx]]=0
+        
+            
+    return est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all
     
-    return est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, time_all
-    
+

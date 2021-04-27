@@ -307,11 +307,11 @@ def algorithm_sample(S1,S2,lambda_l1=0.1,rho=None,single_threshold=0.05,pair_l1=
                     
         t_past = time.time() - t0
         #print(JA_groups, A_groups)
-        return I_hat, I_hat_parents, t_past, N_lists, A_groups
+        return I_hat, I_hat_parents, N_lists, A_groups, t_past
     
     else:
         t_past = time.time() - t0
-        return I_hat, t_past, N_lists, A_groups
+        return I_hat, N_lists, A_groups, t_past
     
 def run_ours_real(S_obs,S_int,lambda_l1=0.1,single_thresold=0.05,pair_l1=0.05,pair_threshold=0.005,parent_l1=0.05,rho=1.0):
     I_hat_all = {}

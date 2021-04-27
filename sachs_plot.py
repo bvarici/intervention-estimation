@@ -6,7 +6,7 @@ import os
 #import networkx as nx
 import pickle
 import matplotlib.pyplot as plt
-import seaborn as sns
+import matplotlib.colors as mcolors
 
 from realdata.sachs.sachs_meta import SACHS_ESTIMATED_FOLDER, SACHS_FIGURES_FOLDER, nnodes
 from realdata.sachs.sachs_meta import true_dag_old as true_dag_old
@@ -15,8 +15,10 @@ from realdata.sachs.sachs_meta import true_dag_recent as true_dag_recent
 reference = 'NessSachs2016'
 utigsp_ci_test = 'gauss'
 
-ALGS2COLORS = dict(zip(['ours','utigsp', 'utigsp_star'], sns.color_palette()))
-ALGS2MARKERS = {'ours': '*', 'utigsp': 'o', 'utigsp_star': 's',}
+ALGS2COLORS = dict(zip(['ours','utigsp_gauss', 'utigsp_star_gauss', 'utigsp_hsic','utigsp_star_hsic'],\
+                       mcolors.BASE_COLORS))
+ALGS2MARKERS = {'ours':'o','utigsp_gauss': 'P', 'utigsp_star_gauss': '*', 'utigsp_hsic': 'X', 'utigsp_star_hsic': 'x'}
+    
 
 def read_results(file, B, skeleton, method='utigsp',delete_bi_directions=False):
     tp = []
@@ -92,44 +94,82 @@ utigsp_hsic_tp, utigsp_hsic_fp, utigsp_hsic_tp_skeleton, utigsp_hsic_fp_skeleton
 utigsp_star_hsic_tp, utigsp_star_hsic_fp, utigsp_star_hsic_tp_skeleton, utigsp_star_hsic_fp_skeleton, utigsp_star_hsic_time = \
     read_results(res_utigsp_star_hsic, B, correct_skeleton,method='utigsp')
         
-ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton, ours_time = read_results(res_ours, B, correct_skeleton,method='ours')
-        
+ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton, ours_time_all = read_results(res_ours, B, correct_skeleton,method='ours')
+    
+ours_time = []    
+for ours_time_instant in ours_time_all:
+    ours_time.append(sum(list(ours_time_instant.values())))        
     
 #%%
 #  ======= PLOT ROC for directed edges recovery ==========
 plt.clf()
-if utigsp_ci_test == 'gauss':
-    plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-    plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
-elif utigsp_ci_test == 'hsic':
-    plt.scatter(utigsp_hsic_fp,utigsp_hsic_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-    plt.scatter(utigsp_star_hsic_fp,utigsp_star_hsic_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
-
 plt.scatter(ours_fp,ours_tp,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
+if utigsp_ci_test == 'gauss':
+    plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp_gauss'],color=ALGS2COLORS['utigsp_gauss'])
+    plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star_gauss'],color=ALGS2COLORS['utigsp_star_gauss'])
+elif utigsp_ci_test == 'hsic':
+    plt.scatter(utigsp_hsic_fp,utigsp_hsic_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp_hsic'],color=ALGS2COLORS['utigsp_hsic'])
+    plt.scatter(utigsp_star_hsic_fp,utigsp_star_hsic_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star_hsic'],color=ALGS2COLORS['utigsp_star_hsic'])
+
 
 plt.xlim([0,40])
 plt.ylim([0,11])
-plt.title('Directed Edges')
+#plt.title('Directed Edges')
 plt.xlabel('False positives')
 plt.ylabel('True positives')
 plt.grid()
 plt.legend()
-plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_directed_all_'+utigsp_ci_test+'.eps'))
+plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_directed_'+utigsp_ci_test+'.eps'))
 
 #  ======== PLOT ROC for skeleton recovery ===========
 plt.clf()
-if utigsp_ci_test == 'gauss':
-    plt.scatter(utigsp_gauss_fp_skeleton,utigsp_gauss_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-    plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
-elif utigsp_ci_test == 'hsic':
-    plt.scatter(utigsp_hsic_fp_skeleton,utigsp_hsic_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-    plt.scatter(utigsp_star_hsic_fp_skeleton,utigsp_star_hsic_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
-
 plt.scatter(ours_fp_skeleton,ours_tp_skeleton,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
+if utigsp_ci_test == 'gauss':
+    plt.scatter(utigsp_gauss_fp_skeleton,utigsp_gauss_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp_gauss'],color=ALGS2COLORS['utigsp_gauss'])
+    plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star_gauss'],color=ALGS2COLORS['utigsp_star_gauss'])
+elif utigsp_ci_test == 'hsic':
+    plt.scatter(utigsp_hsic_fp_skeleton,utigsp_hsic_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp_hsic'],color=ALGS2COLORS['utigsp_hsic'])
+    plt.scatter(utigsp_star_hsic_fp_skeleton,utigsp_star_hsic_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star_hsic'],color=ALGS2COLORS['utigsp_star_hsic'])
+
 plt.plot([0, n_possible_skeleton - n_true_skeleton], [0, n_true_skeleton], color='grey')
-plt.title('Skeleton')
+#plt.title('Skeleton')
 plt.xlabel('False positives')
 plt.ylabel('True positives')
 plt.grid()
 plt.legend()
-plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_skeleton_all_'+utigsp_ci_test+'.eps'))
+plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_skeleton_'+utigsp_ci_test+'.eps'))
+
+#%%
+# ========= PLOT ROC for directed recovery: Gauss and HSIC tests together
+plt.clf()
+plt.scatter(ours_fp,ours_tp,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
+plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP-Gauss',marker=ALGS2MARKERS['utigsp_gauss'],color=ALGS2COLORS['utigsp_gauss'])
+plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*-Gauss',marker=ALGS2MARKERS['utigsp_star_gauss'],color=ALGS2COLORS['utigsp_star_gauss'])
+plt.scatter(utigsp_hsic_fp,utigsp_hsic_tp,label='UTIGSP-HSIC',marker=ALGS2MARKERS['utigsp_hsic'],color=ALGS2COLORS['utigsp_hsic'])
+plt.scatter(utigsp_star_hsic_fp,utigsp_star_hsic_tp,label='UTIGSP*-HSIC',marker=ALGS2MARKERS['utigsp_star_hsic'],color=ALGS2COLORS['utigsp_star_hsic'])
+
+
+plt.xlim([0,40])
+plt.ylim([0,11])
+#plt.title('Directed Edges')
+plt.xlabel('False positives')
+plt.ylabel('True positives')
+plt.grid()
+plt.legend()
+plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_directed_all.eps'))
+
+#  ======== PLOT ROC for skeleton recovery ===========
+plt.clf()
+plt.scatter(ours_fp_skeleton,ours_tp_skeleton,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
+plt.scatter(utigsp_gauss_fp_skeleton,utigsp_gauss_tp_skeleton,label='UTIGSP-Gauss',marker=ALGS2MARKERS['utigsp_gauss'],color=ALGS2COLORS['utigsp_gauss'])
+plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP*-Gauss',marker=ALGS2MARKERS['utigsp_star_gauss'],color=ALGS2COLORS['utigsp_star_gauss'])
+plt.scatter(utigsp_hsic_fp_skeleton,utigsp_hsic_tp_skeleton,label='UTIGSP-HSIC',marker=ALGS2MARKERS['utigsp_hsic'],color=ALGS2COLORS['utigsp_hsic'])
+plt.scatter(utigsp_star_hsic_fp_skeleton,utigsp_star_hsic_tp_skeleton,label='UTIGSP*-HSIC',marker=ALGS2MARKERS['utigsp_star_hsic'],color=ALGS2COLORS['utigsp_star_hsic'])
+
+plt.plot([0, n_possible_skeleton - n_true_skeleton], [0, n_true_skeleton], color='grey')
+#plt.title('Skeleton')
+plt.xlabel('False positives')
+plt.ylabel('True positives')
+plt.grid()
+plt.legend()
+plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_skeleton_all.eps'))

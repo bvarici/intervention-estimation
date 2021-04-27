@@ -12,9 +12,8 @@ import numpy as np
 import time
 import seaborn as sns
 import matplotlib.pyplot as plt
-import os
 
-from realdata.dixit.dixit_meta import EFFECTIVE_NODES, DIXIT_FIGURES_FOLDER
+from realdata.dixit.dixit_meta import EFFECTIVE_NODES
 from realdata.dixit.dixit_meta import dixit_get_samples, nnodes, true_B_dixit_paper
 from functions import run_ours_real
 
@@ -191,8 +190,6 @@ utigsp_star_gauss_tp, utigsp_star_gauss_fp, utigsp_star_gauss_tp_skeleton, utigs
 ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton = read_results(results, B, correct_skeleton,method='ours')
         
 #%%
-utigsp_ci_test = 'gauss'
-
 plt.figure('directed')
 plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
 plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])

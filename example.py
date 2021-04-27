@@ -20,7 +20,7 @@ from functions import run_ours_real
 from causaldag import unknown_target_igsp
 from causaldag import MemoizedCI_Tester, MemoizedInvarianceTester, gauss_invariance_test, gauss_invariance_suffstat
 from causaldag import partial_correlation_test, partial_correlation_suffstat
-from causaldag import hsic_test, hsic_invariance_test, kci_test, kci_invariance_test
+from causaldag import hsic_test, hsic_invariance_test
 
 B = true_B_dixit_paper.copy()
 np.fill_diagonal(B, 0)
@@ -34,8 +34,11 @@ nI = len(EFFECTIVE_NODES)
 n_possible_skeleton_int = int(nI*(nI-1)/2 + nI*(nnodes-nI))
 n_true_skeleton_int = int(np.sum(correct_skeleton[:,EFFECTIVE_NODES])-np.sum(correct_skeleton[EFFECTIVE_NODES][:,EFFECTIVE_NODES]))
 
-ALGS2COLORS = dict(zip(['ours','utigsp', 'utigsp_star'], sns.color_palette()))
-ALGS2MARKERS = {'ours': '*', 'utigsp': 'o', 'utigsp_star': 's'}
+
+ALGS2COLORS = dict(zip(['ours','utigsp_gauss', 'utigsp_star_gauss', 'utigsp_hsic','utigsp_star_hsic'],\
+                       mcolors.BASE_COLORS))
+ALGS2MARKERS = {'ours':'o','utigsp_gauss': 'P', 'utigsp_star_gauss': '*', 'utigsp_hsic': 'X', 'utigsp_star_hsic': 'x'}
+    
 
 
 def run_utigsp_real(setting_list,obs_samples,iv_samples_list,ci_test='gauss',alpha=1e-3,alpha_i=1e-5,no_targets=True):
@@ -191,8 +194,8 @@ ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton = read_results(results, B, 
         
 #%%
 plt.figure('directed')
-plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
+plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp_gauss'],color=ALGS2COLORS['utigsp_gauss'])
+plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star_gauss'],color=ALGS2COLORS['utigsp_star_gauss'])
 
 plt.scatter(ours_fp,ours_tp,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
 plt.xlim([0,50])
@@ -205,8 +208,8 @@ plt.legend()
 plt.savefig(os.path.join(DIXIT_FIGURES_FOLDER, 'example_dixit_directed_all_'+utigsp_ci_test+'.eps'))
 
 plt.figure('skeleton')
-plt.scatter(utigsp_gauss_fp_skeleton,utigsp_gauss_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp'],color=ALGS2COLORS['utigsp'])
-plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star'],color=ALGS2COLORS['utigsp_star'])
+plt.scatter(utigsp_gauss_fp_skeleton,utigsp_gauss_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp_gauss'],color=ALGS2COLORS['utigsp_gauss'])
+plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star_gauss'],color=ALGS2COLORS['utigsp_star_gauss'])
 
 plt.scatter(ours_fp_skeleton,ours_tp_skeleton,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
 plt.plot([0, n_possible_skeleton - n_true_skeleton], [0, n_true_skeleton], color='grey')

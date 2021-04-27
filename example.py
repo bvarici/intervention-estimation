@@ -11,15 +11,23 @@ for Dixit dataset, run both our method and utigsp (with Gauss ci testers)
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
-from realdata.dixit.dixit_meta import EFFECTIVE_NODES
+from realdata.dixit.dixit_meta import EFFECTIVE_NODES, DIXIT_FIGURES_FOLDER
 from realdata.dixit.dixit_meta import dixit_get_samples, nnodes, true_B_dixit_paper
 from functions import run_ours_real
 
 from causaldag import unknown_target_igsp
 from causaldag import MemoizedCI_Tester, MemoizedInvarianceTester, gauss_invariance_test, gauss_invariance_suffstat
 from causaldag import partial_correlation_test, partial_correlation_suffstat
-from causaldag import hsic_test, hsic_invariance_test
+from causaldag import hsic_test, hsic_invariance_test, kci_test, kci_invariance_test
+
+ALGS2COLORS = dict(zip(['ours','utigsp_gauss', 'utigsp_star_gauss', 'utigsp_hsic','utigsp_star_hsic'],\
+                       mcolors.BASE_COLORS))
+ALGS2MARKERS = {'ours':'o','utigsp_gauss': 'P', 'utigsp_star_gauss': '*', 'utigsp_hsic': 'X', 'utigsp_star_hsic': 'x'}
+    
+# CI test for UT-IGSP algorithm.
+utigsp_ci_test = 'gauss'
 
 B = true_B_dixit_paper.copy()
 np.fill_diagonal(B, 0)
@@ -29,15 +37,6 @@ correct_skeleton[np.where(correct_skeleton)] = 1
 n_possible_skeleton = int(nnodes*(nnodes-1)/2)
 n_true_skeleton = int(np.sum(correct_skeleton)/2)
 
-nI = len(EFFECTIVE_NODES)
-n_possible_skeleton_int = int(nI*(nI-1)/2 + nI*(nnodes-nI))
-n_true_skeleton_int = int(np.sum(correct_skeleton[:,EFFECTIVE_NODES])-np.sum(correct_skeleton[EFFECTIVE_NODES][:,EFFECTIVE_NODES]))
-
-
-ALGS2COLORS = dict(zip(['ours','utigsp_gauss', 'utigsp_star_gauss', 'utigsp_hsic','utigsp_star_hsic'],\
-                       mcolors.BASE_COLORS))
-ALGS2MARKERS = {'ours':'o','utigsp_gauss': 'P', 'utigsp_star_gauss': '*', 'utigsp_hsic': 'X', 'utigsp_star_hsic': 'x'}
-    
 
 
 def run_utigsp_real(setting_list,obs_samples,iv_samples_list,ci_test='gauss',alpha=1e-3,alpha_i=1e-5,no_targets=True):
@@ -102,7 +101,7 @@ def read_results(file, B, skeleton, nodes='all', method='utigsp',delete_bi_direc
     
     return tp, fp, tp_skeleton, fp_skeleton
 
-#%% load the data
+# load the data
 I_nodes = EFFECTIVE_NODES
 n_knock = len(I_nodes)
 obs_samples, setting_list = dixit_get_samples()
@@ -116,7 +115,40 @@ for idx_setting in range(len(setting_list)):
     samples_current = setting_list[idx_setting]['samples']
     S_current = (samples_current.T @ samples_current)/samples_current.shape[0]
     S_int['setting_%d'%idx_setting] = S_current
+
+
 #%%
+'Our algorithm'
+# for Delta_Theta estimations
+lambda_l1 = 0.1
+# for J0 threshold
+single_threshold = 0.05
+# for building J0 descendants
+pair_l1 = 0.05
+# remove the small values after J0 descendants built
+pair_threshold = 0.005
+# always taken one. ADMM parameter
+rho = 1.0
+
+# this is more important one. Penalty parameter for parent selection
+parent_l1_list = [0.005,0.01,0.02,0.03,0.04,0.05,0.06,0.08,0.09,0.10]
+
+results = {}
+for parent_l1 in parent_l1_list:
+    parameters = (lambda_l1, single_threshold, pair_l1, pair_threshold, parent_l1, rho) 
+    results[parameters] = {}
+    est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all = \
+        run_ours_real(S_obs,S_int,lambda_l1,single_threshold,pair_l1,pair_threshold,parent_l1,rho)  
+        
+    results[parameters]['estimated_cpdag'] = est_cpdag
+    results[parameters]['estimated_skeleton'] = est_skeleton
+    results[parameters]['I_hat'] = I_hat_all
+    results[parameters]['I_hat_parents'] = I_hat_parents_all
+    results[parameters]['Ij_hat_parents'] = Ij_hat_parents_all
+    results[parameters]['N_lists'] = N_lists_all
+    results[parameters]['A_groups'] = A_groups_all
+    results[parameters]['time'] = time_all
+
 'UTIGSP Gauss without targets'
 alpha_i = 1e-5
 alpha_list = [1e-3, 2e-3, 5e-3, 1e-2, 2e-2]
@@ -150,52 +182,20 @@ for alpha in alpha_list:
     utigsp_gauss['alpha_%.3f'%alpha]['estimated_interventions'] = learned_interventions
     utigsp_gauss['alpha_%.3f'%alpha]['time'] = t_past    
 
-#%%
-'Our algorithm'
-# for Delta_Theta estimations
-lambda_l1 = 0.1
-# for J0 threshold
-single_threshold = 0.05
-# for building J0 descendants
-pair_l1 = 0.05
-# remove the small values after J0 descendants built
-pair_threshold = 0.005
-# always taken one. ADMM parameter
-rho = 1.0
 
-# this is the important one
-parent_l1_list = [0.005,0.01,0.02,0.03,0.04,0.05,0.06,0.08,0.09,0.10]
+ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton = read_results(results, B, correct_skeleton,method='ours')
 
-results = {}
-for parent_l1 in parent_l1_list:
-    parameters = (lambda_l1, single_threshold, pair_l1, pair_threshold, parent_l1, rho) 
-    results[parameters] = {}
-    est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all = \
-        run_ours_real(S_obs,S_int,lambda_l1,single_threshold,pair_l1,pair_threshold,parent_l1,rho)  
-        
-    results[parameters]['estimated_cpdag'] = est_cpdag
-    results[parameters]['estimated_skeleton'] = est_skeleton
-    results[parameters]['I_hat'] = I_hat_all
-    results[parameters]['I_hat_parents'] = I_hat_parents_all
-    results[parameters]['Ij_hat_parents'] = Ij_hat_parents_all
-    results[parameters]['N_lists'] = N_lists_all
-    results[parameters]['A_groups'] = A_groups_all
-    results[parameters]['time'] = time_all
-
-#%%
 utigsp_gauss_tp, utigsp_gauss_fp, utigsp_gauss_tp_skeleton, utigsp_gauss_fp_skeleton = \
     read_results(utigsp_gauss, B, correct_skeleton,method='utigsp')
 
 utigsp_star_gauss_tp, utigsp_star_gauss_fp, utigsp_star_gauss_tp_skeleton, utigsp_star_gauss_fp_skeleton = \
     read_results(utigsp_star_gauss, B, correct_skeleton,method='utigsp')
 
-ours_tp, ours_fp, ours_tp_skeleton, ours_fp_skeleton = read_results(results, B, correct_skeleton,method='ours')
         
-#%%
+#%% plot the results
 plt.figure('directed')
 plt.scatter(utigsp_gauss_fp,utigsp_gauss_tp,label='UTIGSP',marker=ALGS2MARKERS['utigsp_gauss'],color=ALGS2COLORS['utigsp_gauss'])
 plt.scatter(utigsp_star_gauss_fp,utigsp_star_gauss_tp,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star_gauss'],color=ALGS2COLORS['utigsp_star_gauss'])
-
 plt.scatter(ours_fp,ours_tp,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
 plt.xlim([0,50])
 plt.ylim([0,16])
@@ -209,7 +209,6 @@ plt.savefig(os.path.join(DIXIT_FIGURES_FOLDER, 'example_dixit_directed_all_'+uti
 plt.figure('skeleton')
 plt.scatter(utigsp_gauss_fp_skeleton,utigsp_gauss_tp_skeleton,label='UTIGSP',marker=ALGS2MARKERS['utigsp_gauss'],color=ALGS2COLORS['utigsp_gauss'])
 plt.scatter(utigsp_star_gauss_fp_skeleton,utigsp_star_gauss_tp_skeleton,label='UTIGSP*',marker=ALGS2MARKERS['utigsp_star_gauss'],color=ALGS2COLORS['utigsp_star_gauss'])
-
 plt.scatter(ours_fp_skeleton,ours_tp_skeleton,label='ours',marker=ALGS2MARKERS['ours'],color=ALGS2COLORS['ours'])
 plt.plot([0, n_possible_skeleton - n_true_skeleton], [0, n_true_skeleton], color='grey')
 plt.xlim([0,100])

@@ -10,7 +10,6 @@ for Dixit dataset, run both our method and utigsp (with Gauss ci testers)
 """
 import numpy as np
 import time
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 from realdata.dixit.dixit_meta import EFFECTIVE_NODES

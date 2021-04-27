@@ -9,4 +9,4 @@ networkx
 matplotlib
 
 run example.py file to generate ours vs. UTIGSP figures on Dixit dataset.
-Notebook with explanations will be added soon.
+example.ipynb contains more explanation and runs the example.py experiment.

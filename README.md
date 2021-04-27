@@ -7,8 +7,6 @@ Requirements:
 causaldag
 networkx
 matplotlib
-seaborn
 
 run example.py file to generate ours vs. UTIGSP figures on Dixit dataset.
-
 Notebook with explanations will be added soon.

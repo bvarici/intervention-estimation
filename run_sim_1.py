@@ -13,6 +13,7 @@ import pickle
 #import itertools as itr
 from config import SIMULATIONS_ESTIMATED_FOLDER
 from functions import algorithm_sample
+from functions_utigsp import run_utigsp
 import time
 from helpers import create_intervention, sample, counter
 
@@ -20,27 +21,7 @@ from causaldag import unknown_target_igsp
 from causaldag import MemoizedCI_Tester, MemoizedInvarianceTester, gauss_invariance_test, gauss_invariance_suffstat
 from causaldag import partial_correlation_test, partial_correlation_suffstat
 
-
 #%%
-def run_utigsp(obs_samples,iv_samples,alpha=1e-3,alpha_inv=1e-3):
-    t0 = time.time()
-    p = obs_samples.shape[-1]
-    nodes = set(range(p))
-    # Form sufficient statistics
-    obs_suffstat = partial_correlation_suffstat(obs_samples)
-    invariance_suffstat = gauss_invariance_suffstat(obs_samples, [iv_samples])    
-    # Create conditional independence tester and invariance tester
-    ci_tester = MemoizedCI_Tester(partial_correlation_test, obs_suffstat, alpha=alpha)    
-    invariance_tester = MemoizedInvarianceTester(gauss_invariance_test, invariance_suffstat, alpha=alpha_inv)    
-    # Run UT-IGSP
-    setting_list = [dict(known_interventions=[])]
-    est_dag, est_targets = unknown_target_igsp(setting_list, nodes, ci_tester, invariance_tester)
-    est_targets = sorted(list(est_targets[0]))
-    #print(est_targets)
-    t_past = time.time() - t0
-    return est_dag, est_targets, t_past
-
-
 def run_ours_repeated(p_list,density_list,n_samples_list,I_size,n_repeat,\
                       shift=0.0,plus_variance=0.0,B_distortion_amplitude=0,perfect_intervention=False,\
                           rho=1,lambda_l1=0.2,single_threshold=0.1,pair_l1=0.1,pair_threshold=5e-3,parent_l1 = 0.1):

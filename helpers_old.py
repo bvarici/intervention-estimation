@@ -1,5 +1,12 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-utility and helper functions
+Created on Wed Mar 17 00:27:31 2021
+
+@author: Burak
+
+put util/helper functions here. that are not directly related to algorithm
+
 """
 
 import numpy as np
@@ -36,19 +43,157 @@ def return_cliques(C):
         
     return cliques    
 
-
-def create_intervention(p,I_size,density,mu=0,shift=1.0,plus_variance=0.5,variance=1.0,\
-                              tol=1e-6,B_distortion_amplitude=0.0,perfect_intervention=False):
+def create_random_sem(p,I_size,density,Bnoise_amplitude=0.2,tol=1e-6):
     '''
-    enable shift intervention, changing variance of noise interventions, and perfect interventions for one DAG
+    Create Erdos-Renyi random graphs with p nodes, I_size intervention targets
+    '''
+    B = np.random.uniform(-1,-0.25,[p,p])* np.sign(np.random.uniform(-1,0.25,[p,p]))
+    B = np.triu(B)
+    np.fill_diagonal(B,0)
+    edge_indices = np.triu(np.random.uniform(size=[p,p])<(density/p))
+    B = B*edge_indices
+    # Intervention set
+    I = np.sort(np.random.choice(p,I_size,replace=False))
+    # chance noise factors for set I
+    diag_Omega1 = np.random.uniform(1.0,1.0,size=(p))
+    Omega1 = np.diag(diag_Omega1)
+    
+    diag_Omega2 = diag_Omega1.copy()
+    #diag_Omega2[I] += randomize_sign(np.random.uniform(0.2,0.3,len(I)))
+    diag_Omega2[I] += np.random.uniform(0.25,1.0,len(I))
+    Omega2 = np.diag(diag_Omega2)
+    
+    B1 = B.copy()
+    B2 = B.copy()
+    
+    Bnoise = np.zeros(B2.shape)
+    Bnoise[:,I] = -Bnoise_amplitude
+    Bnoise = np.triu(Bnoise,k=1)* (np.abs(B1)>0)
+    B2 = B1 + Bnoise
+    
+    G1 = nx.to_networkx_graph(B1,create_using=nx.DiGraph)
+    G2 = nx.to_networkx_graph(B2,create_using=nx.DiGraph)
+    
+    # get precision and covariance matrices
+    Theta1, Cov1 = get_precision_cov(B1,Omega1)
+    Theta2, Cov2 = get_precision_cov(B2,Omega2)
+    Delta_Theta = np.abs(Theta1-Theta2)>tol
+    S_Delta = np.where(np.diag(Delta_Theta))[0]   
+
+    return B1,Omega1,G1,Theta1,Cov1,B2,Omega2,G2,Theta2,Cov2,Delta_Theta,S_Delta,I
+
+def create_random_utigsp(p,I_size,density,tol=1e-6):
+    '''
+    Create Erdos-Renyi random graphs with p nodes, 
+    '''
+    B = np.random.uniform(-1,-0.25,[p,p])* np.sign(np.random.uniform(-1,0.25,[p,p]))
+    B = np.triu(B)
+    np.fill_diagonal(B,0)
+    edge_indices = np.triu(np.random.uniform(size=[p,p])<(density/p))
+    B = B*edge_indices
+    # Intervention set
+    I = np.sort(np.random.choice(p,I_size,replace=False))
+    # chance noise factors for set I
+    diag_Omega1 = np.random.uniform(1.0,1.0,size=(p))
+    Omega1 = np.diag(diag_Omega1)
+    
+    diag_Omega2 = diag_Omega1.copy()
+    #diag_Omega2[I] += np.random.uniform(0.25,1.0,len(I))
+    diag_Omega2[I] += 1
+    Omega2 = np.diag(diag_Omega2)
+    
+    B1 = B.copy()
+    B2 = B.copy()
+    
+    G1 = nx.to_networkx_graph(B1,create_using=nx.DiGraph)
+    G2 = nx.to_networkx_graph(B2,create_using=nx.DiGraph)
+    
+    # get precision and covariance matrices
+    Theta1, Cov1 = get_precision_cov(B1,Omega1)
+    Theta2, Cov2 = get_precision_cov(B2,Omega2)
+    Delta_Theta = np.abs(Theta1-Theta2)>tol
+    S_Delta = np.where(np.diag(Delta_Theta))[0]   
+
+    return B1,Omega1,G1,Theta1,Cov1,B2,Omega2,G2,Theta2,Cov2,Delta_Theta,S_Delta,I
+
+
+#%%
+def create_shift_noise_intervention(p,I_size,density,mu=0,shift=1.0,variance=1.0,tol=1e-6):
+    '''
+    notice that for shift intervention, inverse covariance, i.e. precision does not change
+    so, consider E[X@X.T] in general case, and its inverse
     '''
     # create base B
-    B = np.random.uniform(-1,-0.25,[p,p])* np.random.choice([-1,1],size=[p,p])
+    B = np.random.uniform(-1,-0.25,[p,p])* np.sign(np.random.uniform(-1,0.25,[p,p]))
     B = np.triu(B)
     np.fill_diagonal(B,0)
     edge_indices = np.triu(np.random.uniform(size=[p,p])<(density/p))
     B = B*edge_indices    
-    #G = nx.to_networkx_graph(B,create_using=nx.DiGraph)
+    G = nx.to_networkx_graph(B,create_using=nx.DiGraph)
+    # Intervention set
+    I = np.sort(np.random.choice(p,I_size,replace=False))
+
+    # internal noises will be N(mean,variance) for G1, N(mean+intervention_side*shift,variance) for G2
+    mu1 = mu*np.ones(p)
+    mu2 = mu*np.ones(p)
+    variance1 = variance*np.ones(p)
+    variance2 = variance*np.ones(p)
+    # shift the noise means
+    mu2[I] += shift
+    # compute E[noise@noise.T] since mean has changed, it is not equal to covariance
+    Omega1 = mu1**2 + variance1
+    Omega2 = mu2**2 + variance2
+    # now ready to get precision (or generalized precision) matrix
+    Theta1, Cov1 = get_precision_cov(B, np.diag(Omega1))
+    Theta2, Cov2 = get_precision_cov(B, np.diag(Omega2))
+    Delta_Theta = np.abs(Theta1-Theta2)>tol
+    S_Delta = np.where(np.diag(Delta_Theta))[0]   
+    
+    return B,G,mu1,variance1,Omega1,Theta1,Cov1,mu2,variance2,Omega2,Theta2,Cov2,Delta_Theta,S_Delta,I
+
+def create_noise_variance_intervention(p,I_size,density,mu=0,plus_variance=1.0,variance=1.0,tol=1e-6):
+    '''
+    notice that for shift intervention, inverse covariance, i.e. precision does not change
+    so, consider E[X@X.T] in general case, and its inverse
+    '''
+    # create base B
+    B = np.random.uniform(-1,-0.25,[p,p])* np.sign(np.random.uniform(-1,0.25,[p,p]))
+    B = np.triu(B)
+    np.fill_diagonal(B,0)
+    edge_indices = np.triu(np.random.uniform(size=[p,p])<(density/p))
+    B = B*edge_indices    
+    G = nx.to_networkx_graph(B,create_using=nx.DiGraph)
+    # Intervention set
+    I = list(np.sort(np.random.choice(p,I_size,replace=False)))
+
+    # internal noises will be N(mean,variance) for G1, N(mean+intervention_side*shift,variance) for G2
+    mu1 = mu*np.ones(p)
+    mu2 = mu*np.ones(p)
+    variance1 = variance*np.ones(p)
+    variance2 = variance*np.ones(p)
+    # increase the noise variances
+    variance2[I] += plus_variance
+    Omega1 = mu1**2 + variance1
+    Omega2 = mu2**2 + variance2
+    # now ready to get precision (or generalized precision) matrix
+    Theta1, Cov1 = get_precision_cov(B, np.diag(Omega1))
+    Theta2, Cov2 = get_precision_cov(B, np.diag(Omega2))
+    Delta_Theta = np.abs(Theta1-Theta2)>tol
+    S_Delta = np.where(np.diag(Delta_Theta))[0]   
+    
+    return B,G,mu1,variance1,Omega1,Theta1,Cov1,mu2,variance2,Omega2,Theta2,Cov2,Delta_Theta,S_Delta,I
+
+def create_noise_intervention(p,I_size,density,mu=0,shift=1.0,plus_variance=0.5,variance=1.0,tol=1e-6):
+    '''
+    combine shift intervention and changing variance of noise interventions to one function
+    '''
+    # create base B
+    B = np.random.uniform(-1,-0.25,[p,p])* np.sign(np.random.uniform(-1,0.25,[p,p]))
+    B = np.triu(B)
+    np.fill_diagonal(B,0)
+    edge_indices = np.triu(np.random.uniform(size=[p,p])<(density/p))
+    B = B*edge_indices    
+    G = nx.to_networkx_graph(B,create_using=nx.DiGraph)
     # Intervention set
     I = list(np.sort(np.random.choice(p,I_size,replace=False)))
 
@@ -63,18 +208,47 @@ def create_intervention(p,I_size,density,mu=0,shift=1.0,plus_variance=0.5,varian
     variance2[I] += plus_variance
     Omega1 = mu1**2 + variance1
     Omega2 = mu2**2 + variance2
+    # now ready to get precision (or generalized precision) matrix
+    Theta1, Cov1 = get_precision_cov(B, np.diag(Omega1))
+    Theta2, Cov2 = get_precision_cov(B, np.diag(Omega2))
+    Delta_Theta = np.abs(Theta1-Theta2)>tol
+    S_Delta = np.where(np.diag(Delta_Theta))[0]   
+    
+    return B,G,mu1,variance1,Omega1,Theta1,Cov1,mu2,variance2,Omega2,Theta2,Cov2,Delta_Theta,S_Delta,I
 
-    B1 = B.copy(); B2 = B.copy()    
+def create_perfect_intervention(p,I_size,density,mu=0,shift=1.0,plus_variance=0.5,variance=1.0,tol=1e-6):
+    '''
+    for all I, remove their parents completely.
+    and also update their noises.
+    '''
+    # create base B
+    B = np.random.uniform(-1,-0.25,[p,p])* np.sign(np.random.uniform(-1,0.25,[p,p]))
+    B = np.triu(B)
+    np.fill_diagonal(B,0)
+    edge_indices = np.triu(np.random.uniform(size=[p,p])<(density/p))
+    B = B*edge_indices    
+    # Intervention set
+    I = list(np.sort(np.random.choice(p,I_size,replace=False)))
+
+    # internal noises will be N(mean,variance) for G1, N(mean+intervention_side*shift,variance) for G2
+    mu1 = mu*np.ones(p)
+    mu2 = mu*np.ones(p)
+    variance1 = variance*np.ones(p)
+    variance2 = variance*np.ones(p)
+    # shift the noise means
+    mu2[I] += shift
+    # increase the noise variances
+    variance2[I] += plus_variance
+    variance2[I] += plus_variance
+    Omega1 = mu1**2 + variance1
+    Omega2 = mu2**2 + variance2
     
-    if perfect_intervention is False:
-        # apply imperfect changes to B, or keep it the same if  B_distortion_amplitude=0.0
-        B_distortion = np.sign(B2) * B_distortion_amplitude
-        B_distortion[:,np.delete(np.arange(p),I)] = 0
-        B2 -= B_distortion
-    elif perfect_intervention is True:
-        # apply perfect interventions, remove all parents to child connections for target nodes
-        B2[:,I] = 0
-    
+    B1 = B.copy(); B2 = B.copy()
+    for i in I:
+        B2[:,i] = 0
+
+    G1 = nx.to_networkx_graph(B1,create_using=nx.DiGraph)
+    G2 = nx.to_networkx_graph(B2,create_using=nx.DiGraph)
 
     # now ready to get precision (or generalized precision) matrix
     Theta1, Cov1 = get_precision_cov(B1, np.diag(Omega1))
@@ -82,88 +256,7 @@ def create_intervention(p,I_size,density,mu=0,shift=1.0,plus_variance=0.5,varian
     Delta_Theta = np.abs(Theta1-Theta2)>tol
     S_Delta = np.where(np.diag(Delta_Theta))[0]   
     
-    G1 = nx.to_networkx_graph(B1,create_using=nx.DiGraph)
-    G2 = nx.to_networkx_graph(B2,create_using=nx.DiGraph)
-    
     return B1,G1,mu1,variance1,Omega1,Theta1,Cov1,B2,G2,mu2,variance2,Omega2,Theta2,Cov2,Delta_Theta,S_Delta,I
-
-
-def create_multiple_intervention(p,I_size,n_interventions,density,mu=0,shift=1.0,plus_variance=0.5,variance=1.0,\
-                              tol=1e-6,B_distortion_amplitude=0.0,perfect_intervention=False):
-    '''
-    combine shift intervention and changing variance of noise interventions to one function
-    '''
-    # create base B
-    B = np.random.uniform(-1,-0.25,[p,p])* np.random.choice([-1,1],size=[p,p])
-    B = np.triu(B)
-    np.fill_diagonal(B,0)
-    edge_indices = np.triu(np.random.uniform(size=[p,p])<(density/p))
-    B = B*edge_indices    
-
-    'observational case will be setting_0'
-    mu1 = mu*np.ones(p)
-    variance1 = variance*np.ones(p)
-    Omega1 = mu1**2 + variance1
-    B1 = B.copy()
-    Theta1, Cov1 = get_precision_cov(B1, np.diag(Omega1))
-    # adjacency matrix
-    dag = B.copy(); dag[np.where(dag)] = 1
-    skeleton = dag + dag.T
-    
-    setting_list = {}
-    setting_list['setting_0']= {}
-    setting_list['setting_0']['B'] = B1
-    setting_list['setting_0']['mu'] = mu1
-    setting_list['setting_0']['variance'] = variance1
-    setting_list['setting_0']['Omega'] = Omega1
-    setting_list['setting_0']['Theta'] = Theta1
-    setting_list['setting_0']['Cov'] = Cov1
-    setting_list['setting_0']['dag'] = dag
-    setting_list['setting_0']['skeleton'] = skeleton
-
-    I_all = {}
-    I_parents_all = {}
-
-    'randomly choosing I_size target nodes without replacement n_interventions times'
-    random_ordering = np.random.permutation(p)
-    for idx_intervention in range(1,n_interventions+1):
-        setting_list['setting_%d'%idx_intervention] = {}
-        I = sorted(random_ordering[(idx_intervention-1)*I_size:(idx_intervention)*I_size])
-        I_all['setting_%d'%idx_intervention] = I
-        I_parents_all['setting_%d'%idx_intervention] = [list(np.where(B[:,i])[0]) for i in I]
-
-        setting_list['setting_%d'%idx_intervention]['I'] = I
-        # internal noises will be N(mean,variance) for G1, N(mean+intervention_side*shift,variance) for G2
-        mu2 = mu*np.ones(p)
-        variance2 = variance*np.ones(p)
-        # shift the noise means
-        mu2[I] += shift
-        # increase the noise variances
-        variance2[I] += plus_variance
-        Omega2 = mu2**2 + variance2
-        B2 = B.copy()        
-        if perfect_intervention is False:
-            # apply imperfect changes to B, or keep it the same if  B_distortion_amplitude=0.0
-            B_distortion = np.sign(B2) * B_distortion_amplitude
-            B_distortion[:,np.delete(np.arange(p),I)] = 0
-            B2 -= B_distortion
-        elif perfect_intervention is True:
-            # apply perfect interventions, remove all parents to child connections for target nodes
-            B2[:,I] = 0
-    
-        # now ready to get precision (or generalized precision) matrix
-        Theta2, Cov2 = get_precision_cov(B2, np.diag(Omega2))
-        Delta_Theta = np.abs(Theta1-Theta2)>tol
-        S_Delta = np.where(np.diag(Delta_Theta))[0]   
-        setting_list['setting_%d'%idx_intervention]['B'] = B2
-        setting_list['setting_%d'%idx_intervention]['mu'] = mu2
-        setting_list['setting_%d'%idx_intervention]['variance'] = variance2
-        setting_list['setting_%d'%idx_intervention]['Omega'] = Omega2
-        setting_list['setting_%d'%idx_intervention]['Theta'] = Theta2
-        setting_list['setting_%d'%idx_intervention]['Cov'] = Cov2
-        setting_list['setting_%d'%idx_intervention]['S_Delta'] = S_Delta
-        
-    return setting_list, I_all, I_parents_all
 
 def sample(B,means,variances,n_samples):
     '''
@@ -175,7 +268,7 @@ def sample(B,means,variances,n_samples):
         internal noise means.
     variances : 
         internal noise variances.
-    n_samples : integer
+    n_samples : INT
         number of samples to generate
 
     Returns
@@ -203,36 +296,6 @@ def sample(B,means,variances,n_samples):
 
 
 def counter(I,I_hat,I_parents,I_hat_parents):
-    '''
-    returns the accuracy stats of I estimation
-    
-    Parameters
-    ----------
-    I : list
-        Ground truth intervention target set.
-    I_hat : list
-        estimated intervention target set.
-    I_parents : list of lists
-        ground truth parents of intervened nodes.
-    I_hat_parents : list of lists
-        estimated parents of intervened nodes.
-
-    Returns
-    -------
-    tp_i_num: int
-        number of true positives for I estimation.
-    fp_i_num: int
-        number of false positives for I estimation.
-    fn_i_num: int
-        number of false negatives for I estimation.
-    tp_e : int
-        number of true positives for I_parents estimation.
-    fp_e : int
-        number of false positives for I_parents estimation.
-    fn_e : int
-        number of false negatives for I_parents estimation.
-
-    '''
     tp_i = list(np.intersect1d(I, I_hat))
     fp_i = list(np.setdiff1d(I_hat,I))
     fn_i = list(np.setdiff1d(I,I_hat))                
@@ -254,8 +317,7 @@ def counter(I,I_hat,I_parents,I_hat_parents):
             fn_e += len(np.setdiff1d(true_parents,est_parents))
             tp_e += len(np.intersect1d(true_parents,est_parents))
 
-    tp_i_num = len(tp_i); fp_i_num = len(fp_i); fn_i_num = len(fn_i)
-    return tp_i_num, fp_i_num, fn_i_num, tp_e, fp_e, fn_e
+    return len(tp_i), len(fp_i), len(fn_i), tp_e, fp_e, fn_e
 
 def scores(I_tp,I_fp,I_fn,e_tp,e_fp,e_fn):
     I_precision = np.sum(I_tp,0) / (np.sum(I_tp,0)+np.sum(I_fp,0))
@@ -267,7 +329,31 @@ def scores(I_tp,I_fp,I_fn,e_tp,e_fp,e_fn):
     e_f1 = np.sum(e_tp,0) / (np.sum(e_tp,0)+(np.sum(e_fp,0)+np.sum(e_fn,0))/2)
     
     return I_precision, I_recall, I_f1, e_precision, e_recall ,e_f1
+# #%
+# 'UT-IGST'
+# t0 = time.time()
+# nodes = set(range(p))
+# # Form sufficient statistics
+# #obs_suffstat = gauss_ci_suffstat(obs_samples)
+# obs_suffstat = ci_suffstats.partial_correlation_suffstat(obs_samples)
+# invariance_suffstat = gauss_invariance_suffstat(obs_samples, [iv_samples])
 
+# # Create conditional independence tester and invariance tester
+# alpha = 1e-3
+# alpha_inv = 1e-3
+# #ci_tester = MemoizedCI_Tester(gauss_ci_test, obs_suffstat, alpha=alpha)
+# ci_tester = MemoizedCI_Tester(ci_tests.partial_correlation_test, obs_suffstat, alpha=alpha)
+
+# invariance_tester = MemoizedInvarianceTester(gauss_invariance_test, invariance_suffstat, alpha=alpha_inv)
+
+# # Run UT-IGSP
+# setting_list = [dict(known_interventions=[])]
+# est_dag, est_targets = unknown_target_igsp(setting_list, nodes, ci_tester, invariance_tester)
+# print(sorted(list(est_targets[0])))
+
+# t2 = time.time() - t0
+
+# print(t1,t2)
 
 def find_cpdag_from_dag(A):
     '''
@@ -447,9 +533,10 @@ def intervention_CPDAG(S,v_structures,I,Ij_parents):
     apply the intervention knowledge
     return new I-CPDAG
     '''
-    #nonI_nodes = np.delete(np.arange(S.shape[0]),I)
-    #undirected_loc = np.where((S==1)&(S.T==1)) 
-    #undirected_edges = list(zip(undirected_loc[0],undirected_loc[1]))
+    nonI_nodes = np.delete(np.arange(S.shape[0]),I)
+    
+    undirected_loc = np.where((S==1)&(S.T==1)) 
+    undirected_edges = list(zip(undirected_loc[0],undirected_loc[1]))
     directed_loc = np.where((S==1)&(S.T==0)) 
     directed_edges = list(zip(directed_loc[0],directed_loc[1]))
     
@@ -470,40 +557,6 @@ def intervention_CPDAG(S,v_structures,I,Ij_parents):
     I_new_directed_edges = [I_directed_edges[i] for i in range(len(I_directed_edges)) if I_directed_edges[i] not in directed_edges]
     return I_S, I_v_structures, I_directed_edges, I_undirected_edges, I_new_directed_edges
 
-
-def multiple_intervention_CPDAG(S,v_structures,I_all,I_parents_all):
-    '''
-    takes a CPDAG S and v_structures
-    apply multiple interventional settings
-    return final I-CPDAG
-    '''    
-    #directed_loc = np.where((S==1)&(S.T==0)) 
-    #directed_edges = list(zip(directed_loc[0],directed_loc[1]))
-    
-    I_S = S.copy()
-    for idx_setting in range(1,len(I_all)+1):
-        I = I_all['setting_%d'%idx_setting]
-        I_parents = I_parents_all['setting_%d'%idx_setting]
-        Ij_parents = [list(np.setdiff1d(I_parents[i], I)) for i in range(len(I))]
-
-        for i_idx in range(len(I)):
-            i = I[i_idx]
-            pa_i = Ij_parents[i_idx]
-            # besides I's and Ij_parents, no possible parents
-            #I_S[nonI_nodes,i] = 0        
-            I_S[pa_i,i] = 1
-            I_S[i,pa_i] = 0        
-            
-        I_undirected_loc = np.where((I_S==1)&(I_S.T==1)) 
-        I_undirected_edges = list(zip(I_undirected_loc[0],I_undirected_loc[1]))
-        I_directed_loc = np.where((I_S==1)&(I_S.T==0)) 
-        I_directed_edges = list(zip(I_directed_loc[0],I_directed_loc[1]))
-        I_S, v_structures, I_directed_edges, I_undirected_edges = apply_meek(I_S,v_structures,I_directed_edges,I_undirected_edges)  
-        #I_new_directed_edges = [I_directed_edges[i] for i in range(len(I_directed_edges)) if I_directed_edges[i] not in directed_edges]
-    return I_S
-            
-        
-
 def SHD_CPDAG(S1,S2):
     '''
     computes SHD for two CPDAGs.
@@ -521,5 +574,5 @@ def SHD_CPDAG(S1,S2):
     diff_loc_2 = np.where((diff==1)&(diff.T==0)) 
     diff_edges_2 = list(zip(diff_loc_2[0],diff_loc_2[1]))    
     
-    shd = int(len(diff_edges_1)/2 + len(diff_edges_2))
+    shd = len(diff_edges_1)/2 + len(diff_edges_2)
     return shd 

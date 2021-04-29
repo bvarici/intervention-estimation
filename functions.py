@@ -9,6 +9,8 @@ from networkx.algorithms.clique import find_cliques as find_maximal_cliques
 import itertools
 import time
 import random
+from helpers import sample, counter, create_multiple_intervention, SHD_CPDAG
+from helpers import intervention_CPDAG, multiple_intervention_CPDAG, find_cpdag_from_dag
 
 randomize_sign = lambda x: [each*random.choice([-1,1]) for each in x]
 flatten_list = lambda t: list(set([item for sublist in t for item in sublist]))
@@ -312,8 +314,151 @@ def algorithm_sample(S1,S2,lambda_l1=0.1,rho=None,single_threshold=0.05,pair_l1=
     else:
         t_past = time.time() - t0
         return I_hat, N_lists, A_groups, t_past
+ 
+def algorithm_sample_multiple(setting_list,lambda_l1=0.1,single_threshold=0.05,pair_l1=0.05,pair_threshold=0.005,parent_l1=0.05,rho=1.0):
+    I_hat_all = {}
+    I_hat_parents_all = {}
+    Ij_hat_parents_all = {}
+    N_lists_all = {}
+    A_groups_all = {}
+    time_all = {}
     
-def run_ours_real(S_obs,S_int,lambda_l1=0.1,single_thresold=0.05,pair_l1=0.05,pair_threshold=0.005,parent_l1=0.05,rho=1.0):
+    S_obs = setting_list['setting_0']['S']
+    nnodes = S_obs.shape[0]
+    for idx_setting in range(1,len(setting_list)):
+        I_hat, I_hat_parents, N_lists, A_groups, t_past = algorithm_sample(S_obs,setting_list['setting_%d'%idx_setting]['S'],\
+                                                 lambda_l1,rho,single_threshold,pair_l1,pair_threshold,parent_l1,\
+                                                 return_parents=True,verbose=False,Delta_hat_parent_check=False)
+        Ij_hat_parents = [list(np.setdiff1d(I_hat_parents[i], I_hat)) for i in range(len(I_hat))]
+        I_hat_all['setting_%d'%idx_setting] = I_hat
+        I_hat_parents_all['setting_%d'%idx_setting] = I_hat_parents
+        Ij_hat_parents_all['setting_%d'%idx_setting] = Ij_hat_parents
+        N_lists_all['setting_%d'%idx_setting] = N_lists
+        A_groups_all['setting_%d'%idx_setting] = A_groups
+        time_all['setting_%d'%idx_setting] = t_past
+
+    # now combine the learned information for final causal structure
+    est_cpdag = np.zeros((nnodes,nnodes))
+    for idx_setting in range(1,len(setting_list)):
+        edges_current = list(zip(I_hat_all['setting_%d'%idx_setting],\
+                                I_hat_parents_all['setting_%d'%idx_setting]))
+        for edge in edges_current:
+            est_cpdag[edge[1],edge[0]] = 1         
+            
+    est_skeleton = est_cpdag + est_cpdag.T
+    est_skeleton[np.where(est_skeleton)] = 1
+
+    return est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all
+
+def settings_abc(n_repeat,p,I_size,n_interventions,density,shift,plus_variance,n_samples,\
+              rho,lambda_l1,single_threshold,pair_l1,pair_threshold,parent_l1):
+    '''
+    SETTING A: take ground truth CPDAG and I-CPDAG.
+    add our algo results on top of ground truth CPDAG.
+    compare those. report the performance for I_directed edges.
+    
+        
+    SETTING B: we claim to learn all non-I parents of I nodes. so just consider those.
+    it concerns more than just I-directed edges.
+    
+    SETTING C: for some small networks maybe, run many many interventions, e.g. p*size 1 or p/3 times size 3 so that 
+    I_CPDAG is the DAG (or very close to it) indeed and see how we do there. 
+    '''
+        
+    res = {}
+    for repeat in range(n_repeat):
+        setting_list, I_all, I_parents_all = create_multiple_intervention(p=p,I_size=I_size,n_interventions=n_interventions,density=density,\
+                                                    mu=0,shift=shift,plus_variance=plus_variance,variance=1.0)
+            
+            
+        Ij_parents_all = {}
+        for idx_setting in range(1,len(I_parents_all)+1):
+            Ij_parents_all['setting_%d'%idx_setting] =  [list(np.setdiff1d(I_parents_all['setting_%d'%idx_setting][i], \
+                                   I_all['setting_%d'%idx_setting])) for i in range(len(I_all['setting_%d'%idx_setting]))]
+
+        for i in range(n_interventions+1):
+            X = sample(setting_list['setting_%d'%i]['B'],setting_list['setting_%d'%i]['mu'],\
+                                                          setting_list['setting_%d'%i]['variance'],n_samples)
+            setting_list['setting_%d'%i]['samples'] = X
+            setting_list['setting_%d'%i]['S'] = (X.T@X)/n_samples
+                                                          
+        # cater to UT-IGSP required format
+        #obs_samples, iv_samples_list, utigsp_setting_list = cater_to_utigsp(setting_list)
+        dag = setting_list['setting_0']['dag']
+        cpdag, v_structures, directed_edges, undirected_edges = find_cpdag_from_dag(dag)
+        I_cpdag = multiple_intervention_CPDAG(cpdag,v_structures,I_all,I_parents_all)
+
+        # what we can learn without knowing anything
+        est_cpdag_ours, est_skeleton_ours, I_hat_all_ours, I_hat_parents_all_ours, Ij_hat_parents_all_ours, N_lists_all, A_groups_all, time_all_ours \
+            = algorithm_sample_multiple(setting_list,lambda_l1,single_threshold,pair_l1,pair_threshold,parent_l1,rho)
+      
+        # apply our findings on ground truth observational cpdag
+        est_cpdag_ours_w_gt = multiple_intervention_CPDAG(cpdag, v_structures, I_hat_all_ours, I_hat_parents_all_ours)    
+    
+        # get the identifiable parents of I's, i.e. all j to i relationships
+        mat_ji = np.zeros((p,p))
+        for idx_setting in range(1,len(I_parents_all)+1):
+            for i in range(len(I_all['setting_%d'%idx_setting])):
+                mat_ji[Ij_parents_all['setting_%d'%idx_setting][i],I_all['setting_%d'%idx_setting][i]] = 1
+ 
+        # what we learned?
+        mat_ji_hat = np.zeros((p,p))
+        for idx_setting in range(1,len(I_hat_parents_all_ours)+1):
+            for i in range(len(I_hat_all_ours['setting_%d'%idx_setting])):
+                mat_ji_hat[Ij_hat_parents_all_ours['setting_%d'%idx_setting][i],I_hat_all_ours['setting_%d'%idx_setting][i]] = 1
+    
+    
+        res[repeat] = {}
+        res[repeat]['dag'] = dag
+        res[repeat]['cpdag'] = cpdag
+        res[repeat]['I_cpdag'] = I_cpdag
+        res[repeat]['est_cpdag'] = est_cpdag_ours
+        res[repeat]['est_cpdag_with_gt'] = est_cpdag_ours_w_gt
+        res[repeat]['I_parents_mat'] = mat_ji
+        res[repeat]['I_parents_mat_hat'] = mat_ji_hat
+
+    'for setting_a, consider the newly directed edges due to interventions'
+    I_directed_edges_n_tp = 0
+    I_directed_edges_n_fp = 0
+    I_directed_edges_n_fn = 0
+    for repeat in range(n_repeat):
+        n_tp_fp = SHD_CPDAG(res[repeat]['est_cpdag_with_gt'],res[repeat]['cpdag'])
+        n_tp_fn = SHD_CPDAG(res[repeat]['cpdag'],res[repeat]['I_cpdag'])
+        n_fp_fn = SHD_CPDAG(res[repeat]['est_cpdag_with_gt'],res[repeat]['I_cpdag'])
+        
+        I_directed_edges_n_tp += int((n_tp_fp+n_tp_fn+n_fp_fn)/2 - n_fp_fn)
+        I_directed_edges_n_fp += int((n_tp_fp+n_tp_fn+n_fp_fn)/2 - n_tp_fn)
+        I_directed_edges_n_fn += int((n_tp_fp+n_tp_fn+n_fp_fn)/2 - n_tp_fp)
+
+    'for setting_b, consider recovering non-intervened parents of targets'
+    I_parents_n_tp = 0
+    I_parents_n_fp = 0
+    I_parents_n_fn = 0
+    for repeat in range(n_repeat):
+        n_tp_r = np.sum(res[repeat]['I_parents_mat']*res[repeat]['I_parents_mat_hat'])
+        n_fp_r = np.sum(res[repeat]['I_parents_mat_hat']) - n_tp_r
+        n_fn_r = np.sum(res[repeat]['I_parents_mat']) - n_tp_r
+        I_parents_n_tp += int(n_tp_r)
+        I_parents_n_fp += int(n_fp_r)
+        I_parents_n_fn += int(n_fn_r)    
+        
+    'for setting_c, compare to I_cpdag directly. meaningful only when there are many settings'
+    cpdag_n_tp = 0
+    cpdag_n_fp = 0
+    cpdag_n_fn = 0
+    for repeat in range(n_repeat):
+        n_tp_fp = np.sum(res[repeat]['est_cpdag'])
+        n_tp_fn = np.sum(res[repeat]['I_cpdag'])
+        n_tp = np.sum(res[repeat]['est_cpdag']*res[repeat]['I_cpdag'])       
+        cpdag_n_tp += int(n_tp)
+        cpdag_n_fp += int(n_tp_fp - n_tp)
+        cpdag_n_fn += int(n_tp_fn - n_tp)
+        
+    return res, I_directed_edges_n_tp, I_directed_edges_n_fp, I_directed_edges_n_fn, \
+        I_parents_n_tp, I_parents_n_fp, I_parents_n_fn, cpdag_n_tp, cpdag_n_fp, cpdag_n_fn
+
+ 
+def run_ours_real(S_obs,S_int,lambda_l1=0.1,single_threshold=0.05,pair_l1=0.05,pair_threshold=0.005,parent_l1=0.05,rho=1.0):
     I_hat_all = {}
     I_hat_parents_all = {}
     Ij_hat_parents_all = {}
@@ -323,7 +468,7 @@ def run_ours_real(S_obs,S_int,lambda_l1=0.1,single_thresold=0.05,pair_l1=0.05,pa
     nnodes = S_obs.shape[0]
     for idx_setting in range(len(S_int)):
         I_hat, I_hat_parents, t_past, N_lists, A_groups = algorithm_sample(S_obs,S_int['setting_%d'%idx_setting],\
-                                                 lambda_l1,rho,single_thresold,pair_l1,pair_threshold,parent_l1,\
+                                                 lambda_l1,rho,single_threshold,pair_l1,pair_threshold,parent_l1,\
                                                  return_parents=True,verbose=False,Delta_hat_parent_check=False)
         Ij_hat_parents = [list(np.setdiff1d(I_hat_parents[i], I_hat)) for i in range(len(I_hat))]
         I_hat_all['setting_%d'%idx_setting] = I_hat

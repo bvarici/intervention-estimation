@@ -1,5 +1,5 @@
 """
-Implementation of the algorithm, catered for finite-sample 
+Implementation of the algorithm, for finite-sample data. 
 
 """
 import numpy as np
@@ -8,13 +8,8 @@ import networkx as nx
 from networkx.algorithms.clique import find_cliques as find_maximal_cliques
 import itertools
 import time
-import random
-from helpers import sample, counter, create_multiple_intervention, SHD_CPDAG
-from helpers import intervention_CPDAG, multiple_intervention_CPDAG, find_cpdag_from_dag
 
-randomize_sign = lambda x: [each*random.choice([-1,1]) for each in x]
 flatten_list = lambda t: list(set([item for sublist in t for item in sublist]))
-
 
 def compute_objective(S1,S2,Delta,lambda_l1,sym_loss=False):
     '''
@@ -50,7 +45,36 @@ def soft_thresholding(x,alpha):
     return np.maximum((np.abs(x)-alpha),0) * np.sign(x)
 
 
-def Delta_Theta_func(S1,S2,lambda_l1=0.1,rho=None,n_max_iter=500,stop_cond=1e-6,verbose=True,return_sym=True):
+def Delta_Theta_func(S1,S2,lambda_l1=0.1,rho=1.0,n_max_iter=500,stop_cond=1e-6,verbose=False,return_sym=True):
+    '''
+    Difference of inverse covariance estimation.
+    A Direct Approach for Sparse Quadratic Discriminant Analysis (Jiang et al. 2018)
+
+    Parameters
+    ----------
+    S1, S2 : 2d array
+        Sample covariance matrices.
+    lambda_l1 : float
+        l1 norm parameter for Delta_Theta estimations over multiple nodes. The default is 0.1.
+    rho : float
+        penalty parameter for ADMM. No need change in most cases. The default is 1.0.
+    n_max_iter : integer
+        maximum number of iterations for ADMM. Does not need to be too large. The default is 500.
+    stop_cond : float
+        stopping condition for ADMM iterations. The default is 1e-6.
+    verbose : Boolean
+        The default is False.
+    return_sym : Boolean
+        Take symmetric (Delta + Delta.T)/2 in the end. The default is True.
+
+    Returns
+    -------
+    Phi : 2d array
+        Main output. Estimated Delta_Theta difference of inverse covariances.
+    obj_hist: array
+        history of objective over the iterations.
+
+    '''
     p = len(S1)
     # initialize Delta, Phi, Lambda. Fix rho
     Delta = np.zeros([p,p])
@@ -108,10 +132,12 @@ def Delta_Theta_func(S1,S2,lambda_l1=0.1,rho=None,n_max_iter=500,stop_cond=1e-6,
 
 
 def diff_marginal_noise_sample_direct(S1,S2):
+    '''
+    returns marginal variances
+    '''
     diff_marginal_noise = []
     M = np.arange(len(S1))
     for i in M:
-        #a = 1/S2[i,i] - 1/S1[i,i] 
         a = S1[i,i] - S2[i,i]
         diff_marginal_noise.append(a)
         
@@ -126,6 +152,8 @@ def build_descendants_sample(S1,S2,M,S,lambda_l1=0.1,rho=None,n_max_iter=500,\
     from M to S
     
     uses Delta_Theta_func repeatedly, as every part of the algorithm
+    
+    returns |M| x |S| binary matrix: M_ij = 1 if M_i is ancestor of S_j
     '''
     M_des = np.zeros([len(M),len(S)])
     for j_idx in range(len(M)):
@@ -140,7 +168,11 @@ def build_descendants_sample(S1,S2,M,S,lambda_l1=0.1,rho=None,n_max_iter=500,\
 
 def prune_sample(Ml,Al,S1,S2,N,lambda_l1=0.1,rho=None,n_max_iter=500,stop_cond=1e-6,\
                                  tol=1e-9,verbose=True):
-    'starting from 1 element subsets, consider all subsets of Al to form Ml \cup A, until we identify everthing'
+    '''
+    starting from 1 element subsets, consider all subsets of Al to form Ml \cup A, until we distinguish everything
+    
+    returns I_l and J_l in a group A_l.
+    '''
     Il = []
     Jl = []
     m = len(Ml)
@@ -168,6 +200,9 @@ def prune_sample(Ml,Al,S1,S2,N,lambda_l1=0.1,rho=None,n_max_iter=500,stop_cond=1
 
 def post_parent_sample(j,i,M_lists,A_groups,A_i,S1,S2,lambda_l1=0.1,rho=None,\
                        n_max_iter=500,stop_cond=1e-6,tol=1e-9,verbose=False):
+    '''
+    returns True if node j is a parent of node i and False otherwise
+    '''
     Ai = A_groups[A_i[i]]
     M = M_lists[i]
     if j not in M:
@@ -194,13 +229,58 @@ def post_parent_sample(j,i,M_lists,A_groups,A_i,S1,S2,lambda_l1=0.1,rho=None,\
 
 
 def algorithm_sample(S1,S2,lambda_l1=0.1,rho=None,single_threshold=0.05,pair_l1=0.1,\
-                     pair_threshold=1e-3,parent_l1=0.1,\
-                    n_max_iter=500,stop_cond=1e-6,tol=1e-9,return_parents=True,verbose=True,Delta_hat_parent_check=True):
-    
+                     pair_threshold=1e-3,parent_l1=0.1,n_max_iter=500,stop_cond=1e-6,\
+                         tol=1e-9,return_parents=True,verbose=True,Delta_hat_parent_check=False):
     '''
-    just make use of Delta_hat more to decide on parent relationships.
-    also, just pass it through a small threshold again, similar to pair_threshold
-    '''
+    finite-sample implementation of our algorithm.
+
+    Parameters
+    ----------
+    S1, S2 : 2d array
+        Sample covariance matrices.
+    lambda_l1 : float
+        l1 norm parameter for Delta_Theta estimations over multiple nodes. The default is 0.1.
+    rho : float
+        penalty parameter for ADMM. No need change in most cases. The default is 1.0.
+    n_max_iter : integer
+        maximum number of iterations for ADMM. Does not need to be too large. The default is 500.
+    stop_cond : float
+        stopping condition for ADMM iterations. The default is 1e-6.
+    verbose : Boolean
+        The default is False.
+    return_sym : Boolean
+        Take symmetric (Delta + Delta.T)/2 in the end. The default is True.
+        
+    single_threshold : float
+        to form J_0 set, use a threshold to decide if two marginal noises are different. The default is 0.05.
+    pair_l1 : float
+        to form J_0^K sets, l1 norm parameter for pairwise Delta_Theta estimation. The default is 0.1.
+    pair_threshold : float
+        use a small threshold to eliminate small non-zero elements for pairwise Delta_Theta. The default is 1e-3.
+    parent_l1 : TYPE, float
+        l1 norm parameter for parent estimations. Can be adjusted to move along the ROC curve. The default is 0.1.
+
+
+    return_parents : Boolean
+        If True, return parent estimates of intervention targets as well. The default is True.
+
+    Delta_hat_parent_check : Boolean
+        If True, use the initial Delta_Theta estimation for final check on parent estimations. The default is False.
+
+    Returns
+    -------
+    I_hat:
+        estimated intervention targets.
+    I_hat_parents: 
+        estimated parents of I_hat nodes.
+    N_lists: 
+        neutralizing ancestor set for a non-intervened node (mostly for debugging)
+    A_groups:
+        estimated A_groups defined in the paper.
+    t_past: float
+        computation time in terms of seconds.
+    '''    
+
     t0 = time.time()
     p = len(S1)
     # neutralizing ancestor set for j nodes
@@ -316,6 +396,29 @@ def algorithm_sample(S1,S2,lambda_l1=0.1,rho=None,single_threshold=0.05,pair_l1=
         return I_hat, N_lists, A_groups, t_past
  
 def algorithm_sample_multiple(setting_list,lambda_l1=0.1,single_threshold=0.05,pair_l1=0.05,pair_threshold=0.005,parent_l1=0.05,rho=1.0):
+    '''
+    when there exists multiple interventional settings, run algorithm_sample for each setting 
+    and combine their results.
+    
+    Returns
+    -------
+    est_cpdag:
+        estimated CPDAG by orienting possible edges with learned intervention parents
+    est_skeleton:
+        estimated skeleton 
+    I_hat_all:
+        estimated intervention targets for each setting
+    I_hat_parents_all:
+        estimated parents of I_hat nodes. (including i to i's which some can be non-oriented)
+    Ij_hat_parents_all:
+        estimated non-intervened parents of I_hat nodes.
+    N_lists_all: 
+        neutralizing ancestor set for a non-intervened node (mostly for debugging)
+    A_groups_all:
+        estimated A_groups defined in the paper.
+    time_all: float
+        computation time in terms of seconds.                            
+    '''
     I_hat_all = {}
     I_hat_parents_all = {}
     Ij_hat_parents_all = {}
@@ -350,115 +453,49 @@ def algorithm_sample_multiple(setting_list,lambda_l1=0.1,single_threshold=0.05,p
 
     return est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all
 
-def settings_abc(n_repeat,p,I_size,n_interventions,density,shift,plus_variance,n_samples,\
-              rho,lambda_l1,single_threshold,pair_l1,pair_threshold,parent_l1):
-    '''
-    SETTING A: take ground truth CPDAG and I-CPDAG.
-    add our algo results on top of ground truth CPDAG.
-    compare those. report the performance for I_directed edges.
-    
-        
-    SETTING B: we claim to learn all non-I parents of I nodes. so just consider those.
-    it concerns more than just I-directed edges.
-    
-    SETTING C: for some small networks maybe, run many many interventions, e.g. p*size 1 or p/3 times size 3 so that 
-    I_CPDAG is the DAG (or very close to it) indeed and see how we do there. 
-    '''
-        
-    res = {}
-    for repeat in range(n_repeat):
-        setting_list, I_all, I_parents_all = create_multiple_intervention(p=p,I_size=I_size,n_interventions=n_interventions,density=density,\
-                                                    mu=0,shift=shift,plus_variance=plus_variance,variance=1.0)
-            
-            
-        Ij_parents_all = {}
-        for idx_setting in range(1,len(I_parents_all)+1):
-            Ij_parents_all['setting_%d'%idx_setting] =  [list(np.setdiff1d(I_parents_all['setting_%d'%idx_setting][i], \
-                                   I_all['setting_%d'%idx_setting])) for i in range(len(I_all['setting_%d'%idx_setting]))]
-
-        for i in range(n_interventions+1):
-            X = sample(setting_list['setting_%d'%i]['B'],setting_list['setting_%d'%i]['mu'],\
-                                                          setting_list['setting_%d'%i]['variance'],n_samples)
-            setting_list['setting_%d'%i]['samples'] = X
-            setting_list['setting_%d'%i]['S'] = (X.T@X)/n_samples
-                                                          
-        # cater to UT-IGSP required format
-        #obs_samples, iv_samples_list, utigsp_setting_list = cater_to_utigsp(setting_list)
-        dag = setting_list['setting_0']['dag']
-        cpdag, v_structures, directed_edges, undirected_edges = find_cpdag_from_dag(dag)
-        I_cpdag = multiple_intervention_CPDAG(cpdag,v_structures,I_all,I_parents_all)
-
-        # what we can learn without knowing anything
-        est_cpdag_ours, est_skeleton_ours, I_hat_all_ours, I_hat_parents_all_ours, Ij_hat_parents_all_ours, N_lists_all, A_groups_all, time_all_ours \
-            = algorithm_sample_multiple(setting_list,lambda_l1,single_threshold,pair_l1,pair_threshold,parent_l1,rho)
-      
-        # apply our findings on ground truth observational cpdag
-        est_cpdag_ours_w_gt = multiple_intervention_CPDAG(cpdag, v_structures, I_hat_all_ours, I_hat_parents_all_ours)    
-    
-        # get the identifiable parents of I's, i.e. all j to i relationships
-        mat_ji = np.zeros((p,p))
-        for idx_setting in range(1,len(I_parents_all)+1):
-            for i in range(len(I_all['setting_%d'%idx_setting])):
-                mat_ji[Ij_parents_all['setting_%d'%idx_setting][i],I_all['setting_%d'%idx_setting][i]] = 1
- 
-        # what we learned?
-        mat_ji_hat = np.zeros((p,p))
-        for idx_setting in range(1,len(I_hat_parents_all_ours)+1):
-            for i in range(len(I_hat_all_ours['setting_%d'%idx_setting])):
-                mat_ji_hat[Ij_hat_parents_all_ours['setting_%d'%idx_setting][i],I_hat_all_ours['setting_%d'%idx_setting][i]] = 1
-    
-    
-        res[repeat] = {}
-        res[repeat]['dag'] = dag
-        res[repeat]['cpdag'] = cpdag
-        res[repeat]['I_cpdag'] = I_cpdag
-        res[repeat]['est_cpdag'] = est_cpdag_ours
-        res[repeat]['est_cpdag_with_gt'] = est_cpdag_ours_w_gt
-        res[repeat]['I_parents_mat'] = mat_ji
-        res[repeat]['I_parents_mat_hat'] = mat_ji_hat
-
-    'for setting_a, consider the newly directed edges due to interventions'
-    I_directed_edges_n_tp = 0
-    I_directed_edges_n_fp = 0
-    I_directed_edges_n_fn = 0
-    for repeat in range(n_repeat):
-        n_tp_fp = SHD_CPDAG(res[repeat]['est_cpdag_with_gt'],res[repeat]['cpdag'])
-        n_tp_fn = SHD_CPDAG(res[repeat]['cpdag'],res[repeat]['I_cpdag'])
-        n_fp_fn = SHD_CPDAG(res[repeat]['est_cpdag_with_gt'],res[repeat]['I_cpdag'])
-        
-        I_directed_edges_n_tp += int((n_tp_fp+n_tp_fn+n_fp_fn)/2 - n_fp_fn)
-        I_directed_edges_n_fp += int((n_tp_fp+n_tp_fn+n_fp_fn)/2 - n_tp_fn)
-        I_directed_edges_n_fn += int((n_tp_fp+n_tp_fn+n_fp_fn)/2 - n_tp_fp)
-
-    'for setting_b, consider recovering non-intervened parents of targets'
-    I_parents_n_tp = 0
-    I_parents_n_fp = 0
-    I_parents_n_fn = 0
-    for repeat in range(n_repeat):
-        n_tp_r = np.sum(res[repeat]['I_parents_mat']*res[repeat]['I_parents_mat_hat'])
-        n_fp_r = np.sum(res[repeat]['I_parents_mat_hat']) - n_tp_r
-        n_fn_r = np.sum(res[repeat]['I_parents_mat']) - n_tp_r
-        I_parents_n_tp += int(n_tp_r)
-        I_parents_n_fp += int(n_fp_r)
-        I_parents_n_fn += int(n_fn_r)    
-        
-    'for setting_c, compare to I_cpdag directly. meaningful only when there are many settings'
-    cpdag_n_tp = 0
-    cpdag_n_fp = 0
-    cpdag_n_fn = 0
-    for repeat in range(n_repeat):
-        n_tp_fp = np.sum(res[repeat]['est_cpdag'])
-        n_tp_fn = np.sum(res[repeat]['I_cpdag'])
-        n_tp = np.sum(res[repeat]['est_cpdag']*res[repeat]['I_cpdag'])       
-        cpdag_n_tp += int(n_tp)
-        cpdag_n_fp += int(n_tp_fp - n_tp)
-        cpdag_n_fn += int(n_tp_fn - n_tp)
-        
-    return res, I_directed_edges_n_tp, I_directed_edges_n_fp, I_directed_edges_n_fn, \
-        I_parents_n_tp, I_parents_n_fp, I_parents_n_fn, cpdag_n_tp, cpdag_n_fp, cpdag_n_fn
-
  
 def run_ours_real(S_obs,S_int,lambda_l1=0.1,single_threshold=0.05,pair_l1=0.05,pair_threshold=0.005,parent_l1=0.05,rho=1.0):
+    '''
+    Run our algorithm on real data with multiple itnerventional settings.
+    
+    Parameters
+    ----------
+    S_obs : 2d array
+        observation sample covariance matrix.
+    S_int : 
+        sample covariance matrices for interventional settings.
+    lambda_l1 : float
+        l1 norm parameter for Delta_Theta estimations over multiple nodes. The default is 0.1.
+    rho : float
+        penalty parameter for ADMM. No need change in most cases. The default is 1.0.
+    single_threshold : float
+        to form J_0 set, use a threshold to decide if two marginal noises are different. The default is 0.05.
+    pair_l1 : float
+        to form J_0^K sets, l1 norm parameter for pairwise Delta_Theta estimation. The default is 0.05.
+    pair_threshold : float
+        use a small threshold to eliminate small non-zero elements for pairwise Delta_Theta. The default is 5e-3.
+    parent_l1 : TYPE, float
+        l1 norm parameter for parent estimations. Can be adjusted to move along the ROC curve. The default is 0.05.
+
+    Returns
+    -------
+    est_cpdag:
+        estimated CPDAG by orienting possible edges with learned intervention parents
+    est_skeleton:
+        estimated skeleton 
+    I_hat_all:
+        estimated intervention targets for each setting
+    I_hat_parents_all:
+        estimated parents of I_hat nodes. (including i to i's which some can be non-oriented)
+    Ij_hat_parents_all:
+        estimated non-intervened parents of I_hat nodes.
+    N_lists_all: 
+        neutralizing ancestor set for a non-intervened node (mostly for debugging)
+    A_groups_all:
+        estimated A_groups defined in the paper.
+    time_all: float
+        computation time in terms of seconds.          
+    '''
     I_hat_all = {}
     I_hat_parents_all = {}
     Ij_hat_parents_all = {}
@@ -489,17 +526,6 @@ def run_ours_real(S_obs,S_int,lambda_l1=0.1,single_threshold=0.05,pair_l1=0.05,p
     est_skeleton = est_cpdag + est_cpdag.T
     est_skeleton[np.where(est_skeleton)] = 1
 
-    # we may have added some extra i to i edges that we cannot exactly know the orientation
-    # for idx_setting in range(len(S_int)):
-    #     Al_group_indices_for_i = [np.where([np.isin(i,A_groups_all['setting_%d'%idx_setting][l]) for l in range(len(A_groups_all['setting_%d'%idx_setting]))])[0][0] for i in I_hat_all['setting_%d'%idx_setting]]
-    #     for i_idx in range(len(I_hat_all['setting_%d'%idx_setting])):
-    #         Ii_parents = np.intersect1d(I_hat_all['setting_%d'%idx_setting],I_hat_parents_all['setting_%d'%idx_setting][i_idx])
-    #         for possible_Ii_parent in Ii_parents:
-    #             Ii_parent_idx = I_hat_all['setting_%d'%idx_setting].index(possible_Ii_parent)
-    #             if Al_group_indices_for_i[Ii_parent_idx] >= Al_group_indices_for_i[i_idx]:
-    #                 est_cpdag[I_hat_all['setting_%d'%idx_setting][Ii_parent_idx],I_hat_all['setting_%d'%idx_setting][i_idx]]=0
-        
-            
     return est_cpdag, est_skeleton, I_hat_all, I_hat_parents_all, Ij_hat_parents_all, N_lists_all, A_groups_all, time_all
     
 

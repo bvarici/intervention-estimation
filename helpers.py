@@ -41,6 +41,12 @@ def create_intervention(p,I_size,density,mu=0,shift=1.0,plus_variance=0.5,varian
                               tol=1e-6,B_distortion_amplitude=0.0,perfect_intervention=False):
     '''
     enable shift intervention, changing variance of noise interventions, and perfect interventions for one DAG
+    
+    internal noise components for intervened nodes:     N(mu+shift,variance+plus_variance)
+                              for non-intervened nodes: N(mu,variance)  
+                              
+    if perfect_intervention is true, make B^2_{pa(i),i} = 0 in second DAG. 
+    otherwise distort them by B_distortion_amplitude
     '''
     # create base B
     B = np.random.uniform(-1,-0.25,[p,p])* np.random.choice([-1,1],size=[p,p])
@@ -91,7 +97,15 @@ def create_intervention(p,I_size,density,mu=0,shift=1.0,plus_variance=0.5,varian
 def create_multiple_intervention(p,I_size,n_interventions,density,mu=0,shift=1.0,plus_variance=0.5,variance=1.0,\
                               tol=1e-6,B_distortion_amplitude=0.0,perfect_intervention=False):
     '''
-    combine shift intervention and changing variance of noise interventions to one function
+    enable shift intervention, changing variance of noise interventions, and perfect interventions for one DAG
+    
+    internal noise components for intervened nodes:     N(mu+shift,variance+plus_variance)
+                              for non-intervened nodes: N(mu,variance)  
+                              
+    if perfect_intervention is true, make B^2_{pa(i),i} = 0 in second DAG. 
+    otherwise distort them by B_distortion_amplitude
+
+    generate multiple such interventional settings.
     '''
     # create base B
     B = np.random.uniform(-1,-0.25,[p,p])* np.random.choice([-1,1],size=[p,p])

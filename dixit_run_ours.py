@@ -8,7 +8,6 @@ It consists of 24 nodes and 56 interventional setting.
 """
 import numpy as np
 import pickle
-import itertools as itr
 
 from realdata.dixit.dixit_meta import DIXIT_ESTIMATED_FOLDER, EFFECTIVE_NODES
 from realdata.dixit.dixit_meta import dixit_get_samples

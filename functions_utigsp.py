@@ -1,22 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Thu Apr 29 00:34:15 2021
-
-@author: Burak
-
 UT-IGSP functions
-
 """
 
 import numpy as np
-#import pickle
 import time
-#import itertools as itr
-#from config import SIMULATIONS_ESTIMATED_FOLDER
-#import pandas as pd
 
-#import networkx as nx
 from causaldag import unknown_target_igsp
 from causaldag import MemoizedCI_Tester, MemoizedInvarianceTester, gauss_invariance_test, gauss_invariance_suffstat
 from causaldag import partial_correlation_test, partial_correlation_suffstat

@@ -28,25 +28,6 @@ true_dag_recent = np.zeros((nnodes,nnodes))
 for edge in true_edges_recent:
     true_dag_recent[edge] = 1
 
-# true_dag_recent = cd.DAG(nodes=set(range(nnodes)), arcs={
-#     (0, 1),
-#     (1, 5),
-#     (2, 3),
-#     (2, 4),
-#     (4, 3),
-#     (7, 0),
-#     (7, 1),
-#     (7, 5),
-#     (7, 6),
-#     (7, 9),
-#     (7, 10),
-#     (8, 0),
-#     (8, 1),
-#     (8, 7),
-#     (8, 9),
-#     (8, 10)
-# })
-
 
 
 # this is what UT-IGSP paper uses
@@ -73,51 +54,7 @@ true_dag_old = np.zeros((nnodes,nnodes))
 for edge in true_edges_old:
     true_dag_old[edge] = 1
 
-# true_dag_old = cd.DAG(nodes=set(range(nnodes)), arcs={
-#     (0, 1),
-#     (1, 5),
-#     (2, 3),
-#     (2, 8),
-#     (3, 8),
-#     (4, 2),
-#     (4, 3),
-#     (4, 6),
-#     (7, 0),
-#     (7, 1),
-#     (7, 5),
-#     (7, 6),
-#     (7, 9),
-#     (7, 10),
-#     (8, 0),
-#     (8, 1),
-#     (8, 9),
-#     (8, 10)
-# })
 
-# this is for reconstructed based on experiments
-# true_dag = cd.DAG(nodes=set(range(nnodes)), arcs={
-#     (0, 1),
-#     (1, 5),
-#     (2, 3),
-#     #(2, 8),
-#     (2, 4),
-#     #(3, 8),
-#     #(4, 2),
-#     (4, 3),
-#     #(4, 6),
-#     (5, 6),
-#     (7, 0),
-#     (7, 1),
-#     (7, 5),
-#     (7, 6),
-#     (7, 9),
-#     (7, 10),
-#     (8, 0),
-#     (8, 1),
-#     (8, 7),
-#     (8, 9),
-#     (8, 10)
-# })
 SACHS_FOLDER = os.path.join(REALDATA_FOLDER, 'sachs')
 SACHS_DATA_FOLDER = os.path.join(SACHS_FOLDER, 'data')
 SACHS_ESTIMATED_FOLDER = os.path.join(SACHS_FOLDER, 'estimated')

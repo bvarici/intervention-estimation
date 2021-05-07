@@ -1,17 +1,13 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Apr 20 15:51:21 2021
-
-@author: Burak
-
-for Dixit dataset, run both our method and utigsp (with Gauss ci testers)
+Example notebook to run both our method and utigsp (with Gauss ci testers) on
+Dixit dataset.
 
 """
 import numpy as np
 import time
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import os
 
 from realdata.dixit.dixit_meta import EFFECTIVE_NODES, DIXIT_FIGURES_FOLDER
 from realdata.dixit.dixit_meta import dixit_get_samples, nnodes, true_B_dixit_paper
@@ -36,7 +32,6 @@ correct_skeleton[np.where(correct_skeleton)] = 1
 
 n_possible_skeleton = int(nnodes*(nnodes-1)/2)
 n_true_skeleton = int(np.sum(correct_skeleton)/2)
-
 
 
 def run_utigsp_real(setting_list,obs_samples,iv_samples_list,ci_test='gauss',alpha=1e-3,alpha_i=1e-5,no_targets=True):

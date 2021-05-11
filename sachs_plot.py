@@ -19,6 +19,12 @@ ALGS2COLORS = dict(zip(['ours','utigsp_gauss', 'utigsp_star_gauss', 'utigsp_hsic
                        mcolors.BASE_COLORS))
 ALGS2MARKERS = {'ours':'o','utigsp_gauss': 'P', 'utigsp_star_gauss': '*', 'utigsp_hsic': 'X', 'utigsp_star_hsic': 'x'}
     
+xticks_size = 14
+yticks_size = 14
+xlabel_size = 18
+ylabel_size = 18
+legend_size = 10
+legend_loc = 'upper left'
 
 def read_results(file, B, skeleton, method='utigsp',delete_bi_directions=False):
     tp = []
@@ -115,10 +121,13 @@ elif utigsp_ci_test == 'hsic':
 plt.xlim([0,40])
 plt.ylim([0,11])
 #plt.title('Directed Edges')
-plt.xlabel('False positives')
-plt.ylabel('True positives')
+plt.xlabel('False positives',size=xlabel_size)
+plt.ylabel('True positives',size=ylabel_size)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
 plt.grid()
-plt.legend()
+plt.legend(fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_directed_'+utigsp_ci_test+'.eps'))
 
 #  ======== PLOT ROC for skeleton recovery ===========
@@ -133,10 +142,13 @@ elif utigsp_ci_test == 'hsic':
 
 plt.plot([0, n_possible_skeleton - n_true_skeleton], [0, n_true_skeleton], color='grey')
 #plt.title('Skeleton')
-plt.xlabel('False positives')
-plt.ylabel('True positives')
+plt.xlabel('False positives',size=xlabel_size)
+plt.ylabel('True positives',size=ylabel_size)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
 plt.grid()
-plt.legend()
+plt.legend(fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_skeleton_'+utigsp_ci_test+'.eps'))
 
 #%%
@@ -152,10 +164,13 @@ plt.scatter(utigsp_star_hsic_fp,utigsp_star_hsic_tp,label='UTIGSP*-HSIC',marker=
 plt.xlim([0,40])
 plt.ylim([0,11])
 #plt.title('Directed Edges')
-plt.xlabel('False positives')
-plt.ylabel('True positives')
+plt.xlabel('False positives',size=xlabel_size)
+plt.ylabel('True positives',size=ylabel_size)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
 plt.grid()
-plt.legend()
+plt.legend(fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_directed_all.eps'))
 
 #  ======== PLOT ROC for skeleton recovery ===========
@@ -168,8 +183,11 @@ plt.scatter(utigsp_star_hsic_fp_skeleton,utigsp_star_hsic_tp_skeleton,label='UTI
 
 plt.plot([0, n_possible_skeleton - n_true_skeleton], [0, n_true_skeleton], color='grey')
 #plt.title('Skeleton')
-plt.xlabel('False positives')
-plt.ylabel('True positives')
+plt.xlabel('False positives',size=xlabel_size)
+plt.ylabel('True positives',size=ylabel_size)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
 plt.grid()
-plt.legend()
+plt.legend(fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(os.path.join(SACHS_FIGURES_FOLDER, 'sachs_skeleton_all.eps'))

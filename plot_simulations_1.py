@@ -43,6 +43,14 @@ def scores(I_tp,I_fp,I_fn,e_tp,e_fp,e_fn):
     
     return I_precision, I_recall, I_f1, e_precision, e_recall ,e_f1
 
+
+xticks_size = 14
+yticks_size = 14
+xlabel_size = 18
+ylabel_size = 18
+legend_size = 12
+legend_loc = 'lower right'
+
 #%% load results for I recovery, increased variance, ours only
 res_inc, I_tp_inc, I_fp_inc, I_fn_inc, e_tp_inc, e_fp_inc, e_fn_inc, time_inc = load_res('increased_variance_1',algos='ours')
 I_precision_inc, I_recall_inc, I_f1_inc, e_precision_inc, e_recall_inc, e_f1_inc = \
@@ -60,10 +68,14 @@ for p_idx in range(len(p_list)):
 legend_str = ['p=%d'%p for p in p_list]
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
-plt.xlabel('Number of Samples',size=12)
-plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.xlabel('Number of Samples',size=xlabel_size)
+#plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.ylabel('Precision',size=ylabel_size)
 plt.ylim([0.4,1])
-plt.legend(legend_str)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
+plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_inc_density15.eps')
 
 plt.figure('increase - density 2.5')
@@ -74,10 +86,14 @@ legend_str = ['p=%d'%p for p in p_list]
 
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
-plt.xlabel('Number of Samples',size=12)
-plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.xlabel('Number of Samples',size=xlabel_size)
+#plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.ylabel('Precision',size=ylabel_size)
 plt.ylim([0.3,1])
-plt.legend(legend_str)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
+plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_inc_density25.eps')
 
 #%% load results for I recovery, shifted mean, ours only
@@ -96,10 +112,14 @@ for p_idx in range(len(p_list)):
 legend_str = ['p=%d'%p for p in p_list]
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
-plt.xlabel('Number of Samples',size=12)
-plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.xlabel('Number of Samples',size=xlabel_size)
+#plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.ylabel('Precision',size=ylabel_size)
 plt.ylim([0.4,1])
-plt.legend(legend_str)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
+plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_shift_density15.eps')
 
 plt.figure('shift - density 2.5')
@@ -110,10 +130,14 @@ legend_str = ['p=%d'%p for p in p_list]
 
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
-plt.xlabel('Number of Samples',size=12)
-plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.xlabel('Number of Samples',size=xlabel_size)
+#plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.ylabel('Precision',size=ylabel_size)
 plt.ylim([0.3,1])
-plt.legend(legend_str)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
+plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_shift_density25.eps')
 
 #%% load results, increased variance, for comparison
@@ -196,23 +220,31 @@ for p_idx in range(len(p_list)):
 legend_str = ['p=%d'%p for p in p_list]
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
-plt.xlabel('Number of Samples',size=12)
-plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.xlabel('Number of Samples',size=xlabel_size)
+#plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.ylabel('Precision',size=ylabel_size)
 plt.ylim([0.4,1])
-plt.legend(legend_str)
-plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_perfect_density15.eps')
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
+plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
+plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_per_density15.eps')
 
-plt.figure('shift - density 2.5')
+plt.figure('perfect - density 2.5')
 for p_idx in range(len(p_list)):
     plt.plot(n_samples_list.astype('str'),I_precision_per[p_idx,1],'--o',markersize=5)
 
 legend_str = ['p=%d'%p for p in p_list]
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
-plt.xlabel('Number of Samples',size=12)
-plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.xlabel('Number of Samples',size=xlabel_size)
+#plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.ylabel('Precision',size=ylabel_size)
 plt.ylim([0.3,1])
-plt.legend(legend_str)
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
+plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
 plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_per_density25.eps')
 
 #%% load results, perfect intervention, comparison

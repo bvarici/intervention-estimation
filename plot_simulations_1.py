@@ -6,6 +6,8 @@ from matplotlib import pyplot as plt
 import pickle
 from config import SIMULATIONS_ESTIMATED_FOLDER, SIMULATIONS_FIGURES_FOLDER
 
+markers = ['empty','o','v','P','D','X']
+    
 
 def load_res(filename,algos='ours'):
     with open(SIMULATIONS_ESTIMATED_FOLDER+'/'+filename+'.pkl','rb') as f:
@@ -50,6 +52,9 @@ xlabel_size = 18
 ylabel_size = 18
 legend_size = 12
 legend_loc = 'lower right'
+linewidth = 2.6
+linestyle = '--'
+markersize = 9
 
 #%% load results for I recovery, increased variance, ours only
 res_inc, I_tp_inc, I_fp_inc, I_fn_inc, e_tp_inc, e_fp_inc, e_fn_inc, time_inc = load_res('increased_variance_1',algos='ours')
@@ -62,27 +67,29 @@ n_samples_list = np.asarray(res_inc['n_samples_list'])
 
 
 plt.figure('increase - density 1.5')
-for p_idx in range(len(p_list)):
-    plt.plot(n_samples_list.astype('str'),I_precision_inc[p_idx,0],'--o',markersize=5)
+for p_idx in range(1,len(p_list)):
+    plt.plot(n_samples_list.astype('str'),I_precision_inc[p_idx,0],linestyle=linestyle,linewidth=linewidth,marker=markers[p_idx],markersize=markersize)
+    
 
-legend_str = ['p=%d'%p for p in p_list]
+legend_str = ['p=%d'%p for p in p_list][1:] 
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
 plt.xlabel('Number of Samples',size=xlabel_size)
 #plt.ylabel('Precision of estimating intervention targets',size=12)
 plt.ylabel('Precision',size=ylabel_size)
-plt.ylim([0.4,1])
+plt.ylim([0.5,1])
 plt.xticks(fontsize=xticks_size)
 plt.yticks(fontsize=yticks_size)
 plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
 plt.tight_layout()
 plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_inc_density15.eps')
 
+#%
 plt.figure('increase - density 2.5')
-for p_idx in range(len(p_list)):
-    plt.plot(n_samples_list.astype('str'),I_precision_inc[p_idx,1],'--o',markersize=5)
+for p_idx in range(1,len(p_list)):
+    plt.plot(n_samples_list.astype('str'),I_precision_inc[p_idx,1],linestyle=linestyle,linewidth=linewidth,marker=markers[p_idx],markersize=markersize)
 
-legend_str = ['p=%d'%p for p in p_list]
+legend_str = ['p=%d'%p for p in p_list][1:]
 
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
@@ -106,16 +113,16 @@ n_samples_list = np.asarray(res_shift['n_samples_list'])
 p_list = res_shift['p_list']
 
 plt.figure('shift - density 1.5')
-for p_idx in range(len(p_list)):
-    plt.plot(n_samples_list.astype('str'),I_precision_shift[p_idx,0],'--o',markersize=5)
+for p_idx in range(1,len(p_list)):
+    plt.plot(n_samples_list.astype('str'),I_precision_shift[p_idx,0],linestyle=linestyle,linewidth=linewidth,marker=markers[p_idx],markersize=markersize)
 
-legend_str = ['p=%d'%p for p in p_list]
+legend_str = ['p=%d'%p for p in p_list][1:]
 #plt.xticks(ticks=n_samples_list,labels=n_samples_list)
 plt.grid()
 plt.xlabel('Number of Samples',size=xlabel_size)
 #plt.ylabel('Precision of estimating intervention targets',size=12)
 plt.ylabel('Precision',size=ylabel_size)
-plt.ylim([0.4,1])
+plt.ylim([0.5,1])
 plt.xticks(fontsize=xticks_size)
 plt.yticks(fontsize=yticks_size)
 plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
@@ -123,8 +130,8 @@ plt.tight_layout()
 plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_shift_density15.eps')
 
 plt.figure('shift - density 2.5')
-for p_idx in range(len(p_list)):
-    plt.plot(n_samples_list.astype('str'),I_precision_shift[p_idx,1],'--o',markersize=5)
+for p_idx in range(1,len(p_list)):
+    plt.plot(n_samples_list.astype('str'),I_precision_shift[p_idx,1],linestyle=linestyle,linewidth=linewidth,marker=markers[p_idx],markersize=markersize)
 
 legend_str = ['p=%d'%p for p in p_list]
 
@@ -139,6 +146,49 @@ plt.yticks(fontsize=yticks_size)
 plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
 plt.tight_layout()
 plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_shift_density25.eps')
+
+#%% load results, perfect intervention, ours only
+res_per, I_tp_per, I_fp_per, I_fn_per, e_tp_per, e_fp_per, e_fn_per, time_per =\
+    load_res('perfect_1',algos='ours')
+I_precision_per, I_recall_per, I_f1_per, e_tp_per, e_fp_per, e_f1_per = \
+    scores(I_tp_per, I_fp_per, I_fn_per, e_tp_per, e_fp_per, e_fn_per)
+
+n_samples_list = np.asarray(res_per['n_samples_list'])
+p_list = res_per['p_list']
+
+plt.figure('perfect - density 1.5')
+for p_idx in range(1,len(p_list)):
+    plt.plot(n_samples_list.astype('str'),I_precision_per[p_idx,0],linestyle=linestyle,linewidth=linewidth,marker=markers[p_idx],markersize=markersize)
+
+legend_str = ['p=%d'%p for p in p_list][1:]
+#plt.xticks(ticks=n_samples_list,labels=n_samples_list)
+plt.grid()
+plt.xlabel('Number of Samples',size=xlabel_size)
+#plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.ylabel('Precision',size=ylabel_size)
+plt.ylim([0.5,1])
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
+plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
+plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_per_density15.eps')
+
+plt.figure('perfect - density 2.5')
+for p_idx in range(1,len(p_list)):
+    plt.plot(n_samples_list.astype('str'),I_precision_per[p_idx,1],linestyle=linestyle,linewidth=linewidth,marker=markers[p_idx],markersize=markersize)
+
+legend_str = ['p=%d'%p for p in p_list][1:]
+#plt.xticks(ticks=n_samples_list,labels=n_samples_list)
+plt.grid()
+plt.xlabel('Number of Samples',size=xlabel_size)
+#plt.ylabel('Precision of estimating intervention targets',size=12)
+plt.ylabel('Precision',size=ylabel_size)
+plt.ylim([0.3,1])
+plt.xticks(fontsize=xticks_size)
+plt.yticks(fontsize=yticks_size)
+plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
+plt.tight_layout()
+plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_per_density25.eps')
 
 #%% load results, increased variance, for comparison
 res_inc, I_tp_inc, I_fp_inc, I_fn_inc, e_tp_inc, e_fp_inc, e_fn_inc, time_inc, \
@@ -204,48 +254,7 @@ p_list = res_shift['p_list']
 # plt.legend(legend_str)
 # #plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_inc.eps')
 
-#%% load results, perfect intervention, ours only
-res_per, I_tp_per, I_fp_per, I_fn_per, e_tp_per, e_fp_per, e_fn_per, time_per =\
-    load_res('perfect_1',algos='ours')
-I_precision_per, I_recall_per, I_f1_per, e_tp_per, e_fp_per, e_f1_per = \
-    scores(I_tp_per, I_fp_per, I_fn_per, e_tp_per, e_fp_per, e_fn_per)
 
-n_samples_list = np.asarray(res_per['n_samples_list'])
-p_list = res_per['p_list']
-
-plt.figure('perfect - density 1.5')
-for p_idx in range(len(p_list)):
-    plt.plot(n_samples_list.astype('str'),I_precision_per[p_idx,0],'--o',markersize=5)
-
-legend_str = ['p=%d'%p for p in p_list]
-#plt.xticks(ticks=n_samples_list,labels=n_samples_list)
-plt.grid()
-plt.xlabel('Number of Samples',size=xlabel_size)
-#plt.ylabel('Precision of estimating intervention targets',size=12)
-plt.ylabel('Precision',size=ylabel_size)
-plt.ylim([0.4,1])
-plt.xticks(fontsize=xticks_size)
-plt.yticks(fontsize=yticks_size)
-plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
-plt.tight_layout()
-plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_per_density15.eps')
-
-plt.figure('perfect - density 2.5')
-for p_idx in range(len(p_list)):
-    plt.plot(n_samples_list.astype('str'),I_precision_per[p_idx,1],'--o',markersize=5)
-
-legend_str = ['p=%d'%p for p in p_list]
-#plt.xticks(ticks=n_samples_list,labels=n_samples_list)
-plt.grid()
-plt.xlabel('Number of Samples',size=xlabel_size)
-#plt.ylabel('Precision of estimating intervention targets',size=12)
-plt.ylabel('Precision',size=ylabel_size)
-plt.ylim([0.3,1])
-plt.xticks(fontsize=xticks_size)
-plt.yticks(fontsize=yticks_size)
-plt.legend(legend_str,fontsize=legend_size,loc=legend_loc)
-plt.tight_layout()
-plt.savefig(SIMULATIONS_FIGURES_FOLDER+'/ours_alone_per_density25.eps')
 
 #%% load results, perfect intervention, comparison
 res_per, I_tp_per, I_fp_per, I_fn_per, e_tp_per, e_fp_per, e_fn_per, time_per, \

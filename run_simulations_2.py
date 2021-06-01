@@ -1,16 +1,15 @@
 """
-Possible settings to demonstrate causal structure recovery of the algorithm
+Two settings to demonstrate causal structure recovery of the algorithm
 
-SETTING A:  take ground truth CPDAG and I-CPDAG.
+First:      take ground truth CPDAG and I-CPDAG.
             add our algo results on top of ground truth CPDAG.
             compare those. report the performance for I_directed edges.
     
-SETTING B:  we claim to learn all non-I parents of I nodes. so just consider those.
+Second:     we claim to learn all non-I parents of I nodes. so just consider those.
             it concerns more than just I-directed edges.
+            report the results for UT-IGSP as well
     
-SETTING C:  for some small networks maybe, run many many interventions, e.g. p*size 1 or p/3 times size 3 so that 
-            I_CPDAG is the DAG (or very close to it) indeed and see how we do there. 
-    
+
 """
 
 import numpy as np
@@ -23,7 +22,7 @@ from helpers import sample, create_multiple_intervention, SHD_CPDAG
 from helpers import multiple_intervention_CPDAG, find_cpdag_from_dag
 
 
-def sco(tp, fp, fn):
+def scores(tp, fp, fn):
     precision = tp/(tp+fp)
     recall = tp/(tp+fn)
     f1 = tp/(tp +(fp+fn)/2)
@@ -292,8 +291,8 @@ res, e_tp, e_fp, e_fn, p_tp, p_fp, p_fn, f_tp, f_fp, f_fn, up_tp, up_fp, up_fn, 
 t_ours = np.mean([res[r]['time'] for r in range(n_repeat)])
 t_utigsp = np.mean([res[r]['time_utigsp'] for r in range(n_repeat)])
 
-print(t_ours,sco(p_tp,p_fp,p_fn))
-print(t_utigsp,sco(up_tp,up_fp,up_fn))
+print(t_ours,scores(p_tp,p_fp,p_fn))
+print(t_utigsp,scores(up_tp,up_fp,up_fn))
 #%
 'run for setting b only. test for p=20,40,60,80 with below parameters'
 n_repeat = 50
@@ -323,8 +322,8 @@ res, e_tp, e_fp, e_fn, p_tp, p_fp, p_fn, f_tp, f_fp, f_fn, up_tp, up_fp, up_fn, 
 t_ours = np.mean([res[r]['time'] for r in range(n_repeat)])
 t_utigsp = np.mean([res[r]['time_utigsp'] for r in range(n_repeat)])
 
-print(t_ours,sco(p_tp,p_fp,p_fn))
-print(t_utigsp,sco(up_tp,up_fp,up_fn))
+print(t_ours,scores(p_tp,p_fp,p_fn))
+print(t_utigsp,scores(up_tp,up_fp,up_fn))
 
 #%%
 'run for setting c only. test for p=20,40 with below parameters'
@@ -359,5 +358,5 @@ res, e_tp, e_fp, e_fn, p_tp, p_fp, p_fn, f_tp, f_fp, f_fn, up_tp, up_fp, up_fn, 
 t_ours = np.mean([res[r]['time'] for r in range(n_repeat)])
 t_utigsp = np.mean([res[r]['time_utigsp'] for r in range(n_repeat)])
 
-print(t_ours,sco(f_tp,f_fp,f_fn))
-print(t_utigsp,sco(uf_tp,uf_fp,uf_fn))
+print(t_ours,scores(f_tp,f_fp,f_fn))
+print(t_utigsp,scores(uf_tp,uf_fp,uf_fn))

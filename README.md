@@ -1,7 +1,7 @@
 # neurips21-submission
 Codes for NeurIPS21 submission: Scalable Intervention Target Estimation in Linear Models.
 
-Requirements:
+Required packages:
 causaldag
 networkx
 matplotlib

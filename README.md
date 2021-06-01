@@ -1,12 +1,10 @@
 # neurips21-submission
-Codes for Neurips21 submission: Intervention target recovery etc.
-
-Draft
+Codes for NeurIPS21 submission: Scalable Intervention Target Estimation in Linear Models.
 
 Requirements:
 causaldag
 networkx
 matplotlib
 
-run example.py file to generate ours vs. UTIGSP figures on Dixit dataset.
-example.ipynb contains more explanation and runs the example.py experiment.
+run example.py file to generate our algorithm vs. UTIGSP figures on Dixit dataset (Fig.2b in the submission).
+example.ipynb contains more explanation regarding hyperparameters and runs the example.py experiment.

@@ -1,4 +1,4 @@
-# neurips21-intervention estimation
+# Scalable Intervention Target Estimation in Linear Models
 Implementation of the algorithm of the paper Scalable Intervention Target Estimation in Linear Models (NeurIPS 2021), and the code to generate simulation results.
 
 Required packages:
